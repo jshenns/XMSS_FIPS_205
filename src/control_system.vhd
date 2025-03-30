@@ -18,8 +18,8 @@ entity control_system is
     
     
     --op_out             : out std_logic_vector(1 downto 0);
-    --node_out           : out std_logic_vector(255 downto 0);
-    sig_xmss_out       : out std_logic_vector(256*8 + 67*256 -1 downto 0);
+    node_out           : out std_logic_vector(255 downto 0);
+    sig_xmss_in       : in std_logic_vector(256*8 + 67*256 -1 downto 0);
     node_valid_out     : out std_logic;
     node_ready         : out std_logic                   
   );
@@ -487,93 +487,93 @@ my_xmss_node: entity work.xmss_node(behavioral)
         valid_in    => valid_in_chain_mux 
     );
   
-  my_wots_sign : entity work.wots_sign(behavioral)
-    port map(
-        clock           => clock,
-        reset           => reset,
+--  my_wots_sign : entity work.wots_sign(behavioral)
+--    port map(
+--        clock           => clock,
+--        reset           => reset,
         
-        M               => message_wots_sign,
-        SK_seed         => sk_seed_wots_sign,
-        data_in_valid   => valid_in_wots_sign,
+--        M               => message_wots_sign,
+--        SK_seed         => sk_seed_wots_sign,
+--        data_in_valid   => valid_in_wots_sign,
         
-        ready           => ready_wots_sign,
-        sig             => sig_wots_sign,
-        sig_valid       => sig_valid_wots_sign,
+--        ready           => ready_wots_sign,
+--        sig             => sig_wots_sign,
+--        sig_valid       => sig_valid_wots_sign,
         
-        -- triangle hash signals
-        hash_reset         => hash_reset_wots_sign        ,
-        hash_mode          => hash_mode_wots_sign         ,
-        hash_data_in_0     => hash_data_in_0_wots_sign    ,
-        hash_data_in_1     => hash_data_in_1_wots_sign    ,
-        hash_data_in_2     => hash_data_in_2_wots_sign    ,
-        hash_data_in_3     => hash_data_in_3_wots_sign    ,
-        hash_data_in_valid => hash_data_in_valid_wots_sign,
+--        -- triangle hash signals
+--        hash_reset         => hash_reset_wots_sign        ,
+--        hash_mode          => hash_mode_wots_sign         ,
+--        hash_data_in_0     => hash_data_in_0_wots_sign    ,
+--        hash_data_in_1     => hash_data_in_1_wots_sign    ,
+--        hash_data_in_2     => hash_data_in_2_wots_sign    ,
+--        hash_data_in_3     => hash_data_in_3_wots_sign    ,
+--        hash_data_in_valid => hash_data_in_valid_wots_sign,
         
-        digest           => node_hash_out,  
-        digest_valid     => node_hash_valid,
-        hash_ready       => node_hash_ready, 
+--        digest           => node_hash_out,  
+--        digest_valid     => node_hash_valid,
+--        hash_ready       => node_hash_ready, 
         
-        -- chain signals go here
-        chain_reset     => chain_reset_wots_sign,                    
-        chain_x         => x_wots_sign             ,
-        chain_i         => i_wots_sign             ,
-        chain_s         => s_wots_sign             ,
-        chain_valid_in  => chain_valid_in_wots_sign,
+--        -- chain signals go here
+--        chain_reset     => chain_reset_wots_sign,                    
+--        chain_x         => x_wots_sign             ,
+--        chain_i         => i_wots_sign             ,
+--        chain_s         => s_wots_sign             ,
+--        chain_valid_in  => chain_valid_in_wots_sign,
         
-        chain_tmp       => tmp_wots_chain,      
-        chain_valid_out => valid_out_wots_chain,
-        chain_ready     => ready_wots_chain  
+--        chain_tmp       => tmp_wots_chain,      
+--        chain_valid_out => valid_out_wots_chain,
+--        chain_ready     => ready_wots_chain  
 
     
-    );
+--    );
 
-my_xmss_sign : entity work.xmss_sign(behavioral)
-    port map(
-           clk => clock,
-           rst => reset,
+--my_xmss_sign : entity work.xmss_sign(behavioral)
+--    port map(
+--           clk => clock,
+--           rst => reset,
            
-           message => message_in,
-           sk_seed => node_secret_seed,
-           idx => node_target_index,
-           valid_in => node_valid_in,
+--           message => message_in,
+--           sk_seed => node_secret_seed,
+--           idx => node_target_index,
+--           valid_in => node_valid_in,
            
-           -- xmss_node signals
-           sk_seed_xmss_node  => sk_seed_xmss_node ,
-           k_xmss_node        => k_xmss_node       ,
-           j_xmss_node        => j_xmss_node       ,
-           valid_in_xmss_node => valid_in_xmss_node,
+--           -- xmss_node signals
+--           sk_seed_xmss_node  => sk_seed_xmss_node ,
+--           k_xmss_node        => k_xmss_node       ,
+--           j_xmss_node        => j_xmss_node       ,
+--           valid_in_xmss_node => valid_in_xmss_node,
            
-           node_out_xmss_node  => xmss_node_hash_out  ,
-           valid_out_xmss_node => xmss_node_hash_valid,
-           ready_xmss_node     => xmss_node_hash_ready,
+--           node_out_xmss_node  => xmss_node_hash_out  ,
+--           valid_out_xmss_node => xmss_node_hash_valid,
+--           ready_xmss_node     => xmss_node_hash_ready,
            
-           -- wots_sign signals
-           message_wots_sign   => message_wots_sign  ,
-           sk_seed_wots_sign   => sk_seed_wots_sign   ,
-           valid_in_wots_sign  => valid_in_wots_sign  ,
-           sig_wots_sign       => sig_wots_sign     ,
-           valid_out_wots_sign => sig_valid_wots_sign        ,
-           ready_wots_sign     => ready_wots_sign  ,
+--           -- wots_sign signals
+--           message_wots_sign   => message_wots_sign  ,
+--           sk_seed_wots_sign   => sk_seed_wots_sign   ,
+--           valid_in_wots_sign  => valid_in_wots_sign  ,
+--           sig_wots_sign       => sig_wots_sign     ,
+--           valid_out_wots_sign => sig_valid_wots_sign        ,
+--           ready_wots_sign     => ready_wots_sign  ,
            
-           -- xmss_sign outputs
-           sig_xmss => sig_xmss_out,
-           valid_out => node_valid_out,
-           ready => node_ready
-    );
+--           -- xmss_sign outputs
+--           sig_xmss => sig_xmss_out,
+--           valid_out => node_valid_out,
+--           ready => node_ready
+--    );
     
 my_xmss_pkFromSig : entity work.xmss_pkFromSig
     Port map (
         clk => clock,
         reset => reset,
         
-        message  => message ,
-        sig      => sig     ,
-        idx      => idx     ,
-        valid_in => valid_in,
+        message  => message_in ,
+        sig      => sig_xmss_in     ,
+        idx      => node_target_index     ,
+        valid_in => node_valid_in,
         
-        pk        => node_hash_out,  
-        valid_out => node_hash_valid,
-        ready     => node_hash_ready, 
+        pk        => node_out,  
+        valid_out => node_valid_out,
+        ready     => node_ready, 
         
         -- wots_pkFromSig signals
         sig_wots_pkFromSig       => sig_wots_pkFromSig      ,
@@ -590,9 +590,10 @@ my_xmss_pkFromSig : entity work.xmss_pkFromSig
         hash_data_in_2     => hash_data_in_2_xmss_pkFromSig    ,
         hash_data_in_3     => hash_data_in_3_xmss_pkFromSig    ,
         hash_data_in_valid => hash_data_in_valid_xmss_pkFromSig,
-        hash_out           => hash_out_xmss_pkFromSig          ,
-        hash_valid         => hash_valid_xmss_pkFromSig        ,
-        hash_ready         => hash_ready_xmss_pkFromSig        
+
+        hash_out           => node_hash_out          ,
+        hash_valid         => node_hash_valid        ,
+        hash_ready         => node_hash_ready        
     );
     
 my_wots_pkFromSig : entity work.wots_pkFromSig
@@ -612,11 +613,11 @@ my_wots_pkFromSig : entity work.wots_pkFromSig
         chain_x             => chain_x_wots_pkFromSig            ,
         chain_i             => chain_i_wots_pkFromSig            ,
         chain_s             => chain_s_wots_pkFromSig            ,
-        chain_valid_in => chain_data_in_valid_wots_pkFromSig,
+        chain_data_in_valid => chain_data_in_valid_wots_pkFromSig,
         
         chain_ready          => node_hash_ready  ,
         chain_tmp            => node_hash_out,
-        chain_valid_out => node_hash_valid ,
+        chain_data_out_valid => node_hash_valid ,
         
         -- compression
         s_tdata_i      => s_tdata_i_wots_pkFromSig ,

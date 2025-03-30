@@ -1,0 +1,17 @@
+# compile vhdl design source files
+vhdl xil_defaultlib  \
+"../../../../../src/chain.vhd" \
+"../../../../../src/chain_input_mux.vhd" \
+"../../../../../src/compression_input_mux.vhd" \
+"../../../../../src/my_bram_xmss_node_2.vhd" \
+"../../../../../src/hash_input_mux.vhd" \
+"../../../../../src/triangle_hash_unit.vhd" \
+"../../../../../src/wots_pkgen.vhd" \
+"../../../../../src/xmss_node.vhd" \
+"../../../../../src/xmss_pkFromSig.vhd" \
+"../../../../../src/wots_pkfromsig.vhd" \
+"../../../../../src/control_system.vhd" \
+"../../../../../src/tb_control_system.vhd" \
+
+# Do not sort compile order
+nosort

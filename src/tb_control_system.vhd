@@ -15,7 +15,7 @@ architecture behavioral of tb_control_system is
     signal message_in         : std_logic_vector(255 downto 0) := (others => '0');
     signal target_index  : std_logic_vector(15 downto 0)  := (others => '0');
     signal valid_in      : std_logic := '0';
-    signal sig_xmss_out       : std_logic_vector(67*256 + 8*256 -1 downto 0) := (others => '0');
+    signal sig_xmss_in       : std_logic_vector(67*256 + 8*256 -1 downto 0) := (others => '0');
     signal node_valid_out     : std_logic := '0';
     signal node_ready         : std_logic  := '0';
                       
@@ -58,7 +58,7 @@ architecture behavioral of tb_control_system is
       message_in => message_in,
       node_target_index => target_index,
       node_valid_in => valid_in,
-      sig_xmss_out => sig_xmss_out,
+      sig_xmss_in => sig_xmss_in,
       node_valid_out => node_valid_out,
       node_ready => node_ready
     );
