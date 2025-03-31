@@ -615,9 +615,11 @@ my_wots_pkFromSig : entity work.wots_pkFromSig
         chain_s             => chain_s_wots_pkFromSig            ,
         chain_data_in_valid => chain_data_in_valid_wots_pkFromSig,
         
-        chain_ready          => node_hash_ready  ,
-        chain_tmp            => node_hash_out,
-        chain_data_out_valid => node_hash_valid ,
+
+
+        chain_ready          => ready_wots_chain  ,
+        chain_tmp            => tmp_wots_chain,
+        chain_data_out_valid => valid_out_wots_chain ,
         
         -- compression
         s_tdata_i      => s_tdata_i_wots_pkFromSig ,

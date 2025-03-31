@@ -126,6 +126,7 @@ begin
                         elsif digest_valid = '1' then
                         
                             tmp <= digest;
+                            j_count <= 0;
                             valid_out <= '1';
                             state <= idle;
                             hash_reset <= '1';
@@ -136,12 +137,13 @@ begin
                             hash_reset <= '0';
                             hash_data_in_valid <= '0';
                         end if;
-                    elsif i_reg + s_reg = 0 then
+                    elsif s_reg = 0 then
                         
                             tmp <= x_reg;
                             valid_out <= '1';
                             state <= idle;
                             hash_reset <= '1';
+                            j_count <= 0;
 
                     
                     end if;

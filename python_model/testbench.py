@@ -457,11 +457,20 @@ def main():
     wots_sig = wots_sign(message, hex_input)
 
     new_wots_sig = [0]*67
+    new_auth = [0]*8
+
+    for i in range(7, -1,-1):
+        new_auth[i] = auth[7-i]
 
     for i in range(66,-1,-1):
         new_wots_sig[i]= wots_sig[66-i]
 
     hex_wots_sig = ""
+
+    hex_auth = ""
+
+    for i in range(8):
+        hex_auth = hex_auth + str(digest_to_hex(new_auth[i]))
 
     for i in range(67):
         hex_wots_sig = hex_wots_sig + str(digest_to_hex(new_wots_sig[i]))
@@ -474,7 +483,7 @@ def main():
     print("wots calc pk: " + str(digest_to_hex(wots_pkFromSig_test)))
 
 
-    print("xmss_sig: " + str(sig))
+    print("xmss_sig: " + hex_wots_sig+hex_auth)
 
     for i in range(len(auth)):
         auth[i] = digest_to_hex(auth[i])
