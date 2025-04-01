@@ -34,5 +34,8 @@ launch_runs my_bram_xmss_node_2_synth_1 -jobs 8
 # Add HDL files to the project for synthesis
 update_compile_order -fileset sources_1
 
+move_files -fileset sim_1 [get_files  C:/Users/joshe/Documents/XMSS_FIPS_205/src/tb_control_system.vhd]
+
+
 # Open the Vivado GUI
 start_gui

@@ -2,6 +2,9 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
+--use STD.textio.all;
+--use ieee.std_logic_textio.all;
+
 entity tb_control_system is
 end entity tb_control_system;
 
@@ -40,7 +43,15 @@ architecture behavioral of tb_control_system is
 
   -- Stimulus processE
   stim_proc: process
+
+  --file test_vector : text open write_mode is "hardware_output.txt";
+  --variable row     : line;
+
+
   begin
+
+    --file_open(test_vector, "hardware_output.txt",read_mode);
+
     -- Reset the design
     wait for clock_period*1.5;
     reset <= '0';
@@ -55,7 +66,24 @@ architecture behavioral of tb_control_system is
     target_index  <= "0000000000000000";   -- Example index (0)   
     valid_in <= '1';
     wait for clock_period;
-    valid_in <= '0'; wait;
+    valid_in <= '0';
+
+
+--    if rising_edge(clock) then
+--      if node_valid_out = '1' then
+
+--        write(row, op_out, right, 15);
+--        hwrite(row, pk_out, right, 15);
+--        hwrite(row, pkFromSig_out, right, 15);
+--        hwrite(row, sig_xmss_out, right,15);
+--        writeline(test_vector, row);
+
+--      end if;
+--    end if;
+
+--    file_close(test_vector);
+    
+    wait;
 
   end process;
 
