@@ -482,7 +482,6 @@ def main():
     wots_pkFromSig_test = wots_pkFromSig(message, wots_sig)
     print("wots calc pk: " + str(digest_to_hex(wots_pkFromSig_test)))
 
-
     print("xmss_sig: " + hex_wots_sig+hex_auth)
 
     for i in range(len(auth)):

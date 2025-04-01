@@ -7,19 +7,18 @@ entity control_system is
     reset : in std_logic;
     
     -- xmss_node & wots_sign ports
-    --op_input           : in std_logic_vector(1 downto 0);
+    op_input           : in std_logic_vector(1 downto 0);
     node_secret_seed   : in std_logic_vector(255 downto 0);
     message_in         : in std_logic_vector(255 downto 0);
-    --node_target_height : in std_logic_vector(15 downto 0);
+    node_target_height : in std_logic_vector(15 downto 0);
     node_target_index  : in std_logic_vector(15 downto 0);
+    sig_in             : in std_logic_vector(67*256 + 8*256 -1 downto 0);    
     node_valid_in      : in std_logic;
     
-    
-    
-    
-    --op_out             : out std_logic_vector(1 downto 0);
-    node_out           : out std_logic_vector(255 downto 0);
-    sig_xmss_in       : in std_logic_vector(256*8 + 67*256 -1 downto 0);
+    op_out             : out std_logic_vector(1 downto 0);
+    pk_out             : out std_logic_vector(255 downto 0);
+    pkFromSig_out      : out std_logic_vector(255 downto 0);
+    sig_xmss_out       : out std_logic_vector(256*8 + 67*256 -1 downto 0);
     node_valid_out     : out std_logic;
     node_ready         : out std_logic                   
   );
@@ -40,6 +39,22 @@ component sha256_stream
         digest_valid_o : out std_logic
     );
 end component sha256_stream;
+
+
+-- top level signals 
+type state_type is (idle, pk_gen, sig_gen, pk_fromSig);
+signal state: state_type := idle;
+
+signal op_input_reg           : std_logic_vector(1 downto 0) := (others => '0');
+signal node_secret_seed_reg   : std_logic_vector(255 downto 0) := (others => '0');
+signal message_in_reg         : std_logic_vector(255 downto 0) := (others => '0');
+signal node_target_height_reg : std_logic_vector(15 downto 0) := (others => '0');
+signal node_target_index_reg  : std_logic_vector(15 downto 0) := (others => '0');
+signal sig_in_reg             : std_logic_vector(67*256 + 8*256 -1 downto 0) := (others => '0');
+
+signal pk_out_reg : std_logic_vector(256 downto 0) := (others => '0');
+signal pk_fromSig_out_reg : std_logic_vector(256 downto 0) := (others => '0');
+signal sig_xmss_out_reg : std_logic_vector(256*67 + 256*8 - 1 downto 0) := (others => '0');
 
 -- xmss_node to bram
 signal we_bram_xmss : STD_LOGIC_VECTOR(0 DOWNTO 0) := "0";
@@ -183,12 +198,29 @@ signal xmss_node_hash_ready : std_logic := '0';
 signal message  :  STD_LOGIC_VECTOR (255 downto 0);  
 signal sig      :  STD_LOGIC_VECTOR (19199 downto 0);  
 signal idx      :  STD_LOGIC_VECTOR (15 downto 0);   
-signal valid_in :  STD_LOGIC;  
+signal valid_in_xmss_pkFromSig :  STD_LOGIC;  
+
+
+-- xmss_sign inputs
+signal message_xmss_sign : std_logic_vector(255 downto 0) := (others => '0');
+signal sk_seed_xmss_sign : std_logic_vector(255 downto 0) := (others => '0');
+signal idx_xmss_sign     : std_logic_vector(15 downto 0) := (others => '0');
+signal valid_in_xmss_sign : std_logic := '0';
+
+--xmss_sign outputs
+signal sig_xmss_sign :std_logic_vector(67*256 + 8*256 -1 downto 0) := (others => '0');
+signal valid_out_xmss_sign : std_logic := '0';
+signal ready_xmss_sign : std_logic := '0';
+
+
 
 -- xmss_pkFromSig outputs
-signal pk        : STD_LOGIC_VECTOR (255 downto 0);
-signal valid_out : STD_LOGIC;                      
-signal ready     : STD_LOGIC;      
+signal pk_xmss_pkFromSig        : STD_LOGIC_VECTOR (255 downto 0);
+signal valid_out_xmss_pkFromSig : STD_LOGIC;                      
+signal ready_xmss_pkFromSig     : STD_LOGIC;      
+
+
+
 
 -- xmss_pkFromSig to wots_pkFromSig signals
 signal sig_wots_pkFromSig       : STD_LOGIC_VECTOR (17151 downto 0);
@@ -210,20 +242,39 @@ signal chain_tmp_wots_pkFromSig            :  STD_LOGIC_VECTOR(255 downto 0);
 signal chain_data_out_valid_wots_pkFromSig :  STD_LOGIC;                     
 
 -- wots_pkFromSig to compression mux
-signal s_tdata_i_wots_pkFromSig  : std_logic_vector(511 downto 0);
-signal s_tlast_i_wots_pkFromSig  : std_logic;                     
-signal s_tvalid_i_wots_pkFromSig : std_logic;                     
-signal hash_reset_wots_pkFromSig : std_logic;                     
+signal s_tdata_i_wots_pkFromSig  : std_logic_vector(511 downto 0) := (others => '0');
+signal s_tlast_i_wots_pkFromSig  : std_logic := '0';                     
+signal s_tvalid_i_wots_pkFromSig : std_logic := '0';                     
+signal hash_reset_wots_pkFromSig : std_logic := '0';                     
 
 -- compression output
-signal node_s_tready_o     : std_logic;                     
-signal node_digest_o       : std_logic_vector(255 downto 0);
-signal node_digest_valid_o : std_logic;    
+signal node_s_tready_o     : std_logic := '0';                     
+signal node_digest_o       : std_logic_vector(255 downto 0) := (others => '0');
+signal node_digest_valid_o : std_logic := '0';    
 
 -- compression mux to compression core 
-signal node_s_tdata_i  : std_logic_vector(511 downto 0);
-signal node_s_tlast_i  : std_logic;                     
-signal node_s_tvalid_i : std_logic;                                  
+signal node_s_tdata_i  : std_logic_vector(511 downto 0) := (others => '0'); 
+signal node_s_tlast_i  : std_logic := '0';                     
+signal node_s_tvalid_i : std_logic := '0';   
+signal compression_reset : std_logic := '0';             
+
+
+
+--xmss node mux
+-- key_gen_inputs
+signal secret_seed_key_gen   : std_logic_vector(255 downto 0) := (others => '0');
+signal target_height_key_gen : std_logic_vector(15 downto 0) := (others => '0');
+signal target_index_key_gen  : std_logic_vector(15 downto 0) := (others => '0');
+signal valid_in_key_gen      : std_logic := '0';
+
+-- xmss_sign inputs
+signal secret_seed_xmss_sign            : std_logic_vector(255 downto 0) := (others => '0');
+signal target_height_xmss_sign          : std_logic_vector(15 downto 0) := (others => '0');
+signal target_index_xmss_sign           : std_logic_vector(15 downto 0) := (others => '0');
+signal valid_in_xmss_sign_node_mux      : std_logic := '0';
+
+
+
 
 begin
 
@@ -235,20 +286,25 @@ my_compression_mux : entity work.compression_input_mux
         s_tdata_i_wots_pkGen  => s_tdata_i_wots_pkGen ,
         s_tlast_i_wots_pkGen  => s_tlast_i_wots_pkGen ,
         s_tvalid_i_wots_pkGen => s_tvalid_i_wots_pkGen,
-        
+        wots_pkGen_reset          => hash_reset_wots_pkGen,
+
+
         s_tdata_i_wots_pkFromSig  => s_tdata_i_wots_pkFromSig ,
         s_tlast_i_wots_pkFromSig  => s_tlast_i_wots_pkFromSig ,
         s_tvalid_i_wots_pkFromSig => s_tvalid_i_wots_pkFromSig,
-        
+        wots_pkFromSig_reset      => hash_reset_wots_pkFromSig,
+
         s_tdata_i  => node_s_tdata_i ,
         s_tlast_i  => node_s_tlast_i ,
-        s_tvalid_i => node_s_tvalid_i
+        s_tvalid_i => node_s_tvalid_i,
+        hash_reset => compression_reset
+
     );
 
 compresion_core: sha256_stream
     port map (
         clk       => clock,
-        rst       => reset,
+        rst       => compression_reset,
         mode      => '1',
         
         s_tdata_i => node_s_tdata_i,
@@ -399,6 +455,7 @@ my_wots_pkGen : entity work.wots_pkGen
         s_tdata_i =>  s_tdata_i_wots_pkGen ,
         s_tlast_i =>  s_tlast_i_wots_pkGen ,
         s_tvalid_i => s_tvalid_i_wots_pkGen,
+        hash_reset => hash_reset_wots_pkGen,
         
         s_tready_o => node_s_tready_o,
         digest_o   => node_digest_o,
@@ -410,6 +467,35 @@ my_wots_pkGen : entity work.wots_pkGen
         ready    => ready_wots_pkGen
     );
 
+my_xmss_node_mux : entity work.xmss_node_mux(behavioral)
+    port map(
+
+        clock => clock,
+        reset => reset,
+        
+        -- key_gen_inputs
+        secret_seed_key_gen   => secret_seed_key_gen  ,
+        target_height_key_gen => target_height_key_gen,
+        target_index_key_gen  => target_index_key_gen ,
+        valid_in_key_gen      => valid_in_key_gen     ,
+
+        -- xmss_sign inputs
+        secret_seed_xmss_sign   => secret_seed_xmss_sign      ,
+        target_height_xmss_sign => target_height_xmss_sign    ,
+        target_index_xmss_sign  => target_index_xmss_sign     ,
+        valid_in_xmss_sign      => valid_in_xmss_sign_node_mux,
+        
+                
+        -- outputs
+        secret_seed   => sk_seed_xmss_node,
+        target_height => j_xmss_node,
+        target_index  => k_xmss_node,
+        valid_in      => valid_in_xmss_node
+
+
+
+
+    );
 
 my_xmss_node: entity work.xmss_node(behavioral)
   port map (
@@ -487,93 +573,93 @@ my_xmss_node: entity work.xmss_node(behavioral)
         valid_in    => valid_in_chain_mux 
     );
   
---  my_wots_sign : entity work.wots_sign(behavioral)
---    port map(
---        clock           => clock,
---        reset           => reset,
+  my_wots_sign : entity work.wots_sign(behavioral)
+    port map(
+        clock           => clock,
+        reset           => reset,
         
---        M               => message_wots_sign,
---        SK_seed         => sk_seed_wots_sign,
---        data_in_valid   => valid_in_wots_sign,
+        M               => message_wots_sign,
+        SK_seed         => sk_seed_wots_sign,
+        data_in_valid   => valid_in_wots_sign,
         
---        ready           => ready_wots_sign,
---        sig             => sig_wots_sign,
---        sig_valid       => sig_valid_wots_sign,
+        ready           => ready_wots_sign,
+        sig             => sig_wots_sign,
+        sig_valid       => sig_valid_wots_sign,
         
---        -- triangle hash signals
---        hash_reset         => hash_reset_wots_sign        ,
---        hash_mode          => hash_mode_wots_sign         ,
---        hash_data_in_0     => hash_data_in_0_wots_sign    ,
---        hash_data_in_1     => hash_data_in_1_wots_sign    ,
---        hash_data_in_2     => hash_data_in_2_wots_sign    ,
---        hash_data_in_3     => hash_data_in_3_wots_sign    ,
---        hash_data_in_valid => hash_data_in_valid_wots_sign,
+        -- triangle hash signals
+        hash_reset         => hash_reset_wots_sign        ,
+        hash_mode          => hash_mode_wots_sign         ,
+        hash_data_in_0     => hash_data_in_0_wots_sign    ,
+        hash_data_in_1     => hash_data_in_1_wots_sign    ,
+        hash_data_in_2     => hash_data_in_2_wots_sign    ,
+        hash_data_in_3     => hash_data_in_3_wots_sign    ,
+        hash_data_in_valid => hash_data_in_valid_wots_sign,
         
---        digest           => node_hash_out,  
---        digest_valid     => node_hash_valid,
---        hash_ready       => node_hash_ready, 
+        digest           => node_hash_out,  
+        digest_valid     => node_hash_valid,
+        hash_ready       => node_hash_ready, 
         
---        -- chain signals go here
---        chain_reset     => chain_reset_wots_sign,                    
---        chain_x         => x_wots_sign             ,
---        chain_i         => i_wots_sign             ,
---        chain_s         => s_wots_sign             ,
---        chain_valid_in  => chain_valid_in_wots_sign,
+        -- chain signals go here
+        chain_reset     => chain_reset_wots_sign,                    
+        chain_x         => x_wots_sign             ,
+        chain_i         => i_wots_sign             ,
+        chain_s         => s_wots_sign             ,
+        chain_valid_in  => chain_valid_in_wots_sign,
         
---        chain_tmp       => tmp_wots_chain,      
---        chain_valid_out => valid_out_wots_chain,
---        chain_ready     => ready_wots_chain  
+        chain_tmp       => tmp_wots_chain,      
+        chain_valid_out => valid_out_wots_chain,
+        chain_ready     => ready_wots_chain  
 
     
---    );
+    );
 
---my_xmss_sign : entity work.xmss_sign(behavioral)
---    port map(
---           clk => clock,
---           rst => reset,
+my_xmss_sign : entity work.xmss_sign(behavioral)
+    port map(
+           clk => clock,
+           rst => reset,
            
---           message => message_in,
---           sk_seed => node_secret_seed,
---           idx => node_target_index,
---           valid_in => node_valid_in,
+           message =>  message_xmss_sign  ,
+           sk_seed =>  sk_seed_xmss_sign  ,
+           idx =>      idx_xmss_sign          ,
+           valid_in => valid_in_xmss_sign,
            
---           -- xmss_node signals
---           sk_seed_xmss_node  => sk_seed_xmss_node ,
---           k_xmss_node        => k_xmss_node       ,
---           j_xmss_node        => j_xmss_node       ,
---           valid_in_xmss_node => valid_in_xmss_node,
+           -- xmss_node signals
+           sk_seed_xmss_node  => secret_seed_xmss_sign      ,
+           k_xmss_node        => target_index_xmss_sign    ,
+           j_xmss_node        => target_height_xmss_sign     ,
+           valid_in_xmss_node => valid_in_xmss_sign_node_mux,
            
---           node_out_xmss_node  => xmss_node_hash_out  ,
---           valid_out_xmss_node => xmss_node_hash_valid,
---           ready_xmss_node     => xmss_node_hash_ready,
+           node_out_xmss_node  => xmss_node_hash_out  ,
+           valid_out_xmss_node => xmss_node_hash_valid,
+           ready_xmss_node     => xmss_node_hash_ready,
            
---           -- wots_sign signals
---           message_wots_sign   => message_wots_sign  ,
---           sk_seed_wots_sign   => sk_seed_wots_sign   ,
---           valid_in_wots_sign  => valid_in_wots_sign  ,
---           sig_wots_sign       => sig_wots_sign     ,
---           valid_out_wots_sign => sig_valid_wots_sign        ,
---           ready_wots_sign     => ready_wots_sign  ,
+           -- wots_sign signals
+           message_wots_sign   => message_wots_sign  ,
+           sk_seed_wots_sign   => sk_seed_wots_sign   ,
+           valid_in_wots_sign  => valid_in_wots_sign  ,
+           sig_wots_sign       => sig_wots_sign     ,
+           valid_out_wots_sign => sig_valid_wots_sign        ,
+           ready_wots_sign     => ready_wots_sign  ,
            
---           -- xmss_sign outputs
---           sig_xmss => sig_xmss_out,
---           valid_out => node_valid_out,
---           ready => node_ready
---    );
+           -- xmss_sign outputs
+           sig_xmss => sig_xmss_sign,
+           valid_out => valid_out_xmss_sign,
+           ready => ready_xmss_sign
+    );
     
 my_xmss_pkFromSig : entity work.xmss_pkFromSig
     Port map (
         clk => clock,
         reset => reset,
         
-        message  => message_in ,
-        sig      => sig_xmss_in     ,
-        idx      => node_target_index     ,
-        valid_in => node_valid_in,
+        message  => message ,
+        sig      => sig   ,
+        idx      => idx ,
+        valid_in => valid_in_xmss_pkFromSig,
         
-        pk        => node_out,  
-        valid_out => node_valid_out,
-        ready     => node_ready, 
+        pk        => pk_xmss_pkFromSig,  
+        valid_out => valid_out_xmss_pkFromSig,
+        ready     => ready_xmss_pkFromSig, 
         
         -- wots_pkFromSig signals
         sig_wots_pkFromSig       => sig_wots_pkFromSig      ,
@@ -632,6 +718,166 @@ my_wots_pkFromSig : entity work.wots_pkFromSig
         digest_valid_o => node_digest_valid_o
     );
     
+    process(clock, reset)
+    begin
+        if reset = '1' then
+            state <= idle;
+            
+            -- input regs
+            op_input_reg           <= (others => '0');
+            node_secret_seed_reg   <= (others => '0');
+            message_in_reg         <= (others => '0');
+            node_target_height_reg <= (others => '0');
+            node_target_index_reg  <= (others => '0');
+            sig_in_reg             <= (others => '0');
+
+            -- output regs 
+            pk_out_reg <= (others => '0');
+            pk_fromSig_out_reg <= (others => '0');
+            sig_xmss_out_reg <= (others => '0');
+
+            --outputs 
+            op_out             <= (others => '0');
+            pk_out             <= (others => '0');
+            pkFromSig_out      <= (others => '0');
+            sig_xmss_out       <= (others => '0');
+            node_valid_out     <= '0';
+            node_ready         <= '0';                 
+        
+
+
+        elsif rising_edge(clock) then
+            case state is 
+                when idle =>
+                    op_out             <= (others => '0');
+                    pk_out             <= (others => '0');
+                    pkFromSig_out      <= (others => '0');
+                    sig_xmss_out       <= (others => '0');
+                    node_valid_out     <= '0';
+                    
+                    
+                    if node_valid_in = '1' then
+
+                        op_input_reg           <= op_input;
+                        node_secret_seed_reg   <= node_secret_seed;
+                        message_in_reg         <= message_in;
+                        node_target_height_reg <= node_target_height;
+                        node_target_index_reg  <= node_target_index;
+                        sig_in_reg             <= sig_in;
+                        node_ready <= '0';
+                    
+                        if op_input = "01" then
+                            
+                            state <= pk_gen;
+                
+                        elsif op_input = "10" then
+                            
+                            state <= sig_gen;
+
+                        elsif op_input = "11" then
+                
+                            state <= pk_fromSig;
+
+                        else
+                            state <= idle;
+
+                            op_input_reg           <= (others => '0');
+                            node_secret_seed_reg   <= (others => '0');
+                            message_in_reg         <= (others => '0');
+                            node_target_height_reg <= (others => '0');
+                            node_target_index_reg  <= (others => '0');
+                            sig_in_reg             <= (others => '0');
+    
+                        end if;
+
+
+                    else
+                        node_ready <= '1';
+
+                    end if;
+                    
+        
+
+                when pk_gen => 
+                    if xmss_node_hash_ready = '1' then
+                        
+                        secret_seed_key_gen       <= node_secret_seed_reg;
+                        target_height_key_gen     <= node_target_height_reg;
+                        target_index_key_gen      <= node_target_index_reg;
+                        valid_in_key_gen          <= '1';
+                    
+                    elsif xmss_node_hash_valid = '1' then
+
+                        op_out             <= op_input_reg;
+                        pk_out             <= xmss_node_hash_out;
+                        pkFromSig_out      <= (others => '0');
+                        sig_xmss_out       <= (others => '0');
+                        node_valid_out     <= '1';
+                        node_ready         <= '0';         
+                        state <= idle;                    
+
+                    else
+                        secret_seed_key_gen       <= (others => '0');
+                        target_height_key_gen     <= (others => '0');
+                        target_index_key_gen      <= (others => '0');
+                        valid_in_key_gen          <= '0';
+
+                    end if;
+                when sig_gen => 
+
+                    if ready_xmss_sign = '1' then
+       
+                        message_xmss_sign  <= message_in_reg;
+                        sk_seed_xmss_sign  <= node_secret_seed_reg;
+                        idx_xmss_sign      <= node_target_index_reg;
+                        valid_in_xmss_sign <= '1';
+                        
+                                            
+                    elsif valid_out_xmss_sign = '1' then
+
+                        op_out             <= op_input_reg;
+                        pk_out             <= (others => '0');
+                        pkFromSig_out      <= (others => '0');
+                        sig_xmss_out       <= sig_xmss_sign;
+                        node_valid_out     <= '1';
+                        node_ready         <= '0';         
+                        state <= idle;                    
+
+                    else
+                        message_xmss_sign      <= (others => '0');
+                        sk_seed_xmss_sign      <= (others => '0');
+                        idx_xmss_sign          <= (others => '0');
+                        valid_in_xmss_sign     <= '0';
+
+                    end if;
+
+                when pk_fromSig =>
+
+                    if ready_xmss_pkFromSig = '1' then
+                        message                 <= message_in_reg;
+                        sig                     <= sig_in_reg;
+                        idx                     <= node_target_index_reg;
+                        valid_in_xmss_pkFromSig <= '1';
+                        
+                                            
+                    elsif valid_out_xmss_pkFromSig = '1' then
+
+                        op_out             <= op_input_reg;
+                        pk_out             <= (others => '0');
+                        pkFromSig_out      <= pk_xmss_pkFromSig;
+                        sig_xmss_out       <= (others => '0');
+                        node_valid_out     <= '1';
+                        node_ready         <= '0';         
+                        state <= idle;                    
+
+                    else
+                        message                    <= (others => '0');
+                        sig                        <= (others => '0');
+                        idx                        <= (others => '0');
+                        valid_in_xmss_pkFromSig    <= '0';
+
+                    end if;
+            end case;
+        end if;
+    end process;
 end Behavioral;
-
-

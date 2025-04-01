@@ -192,6 +192,7 @@ begin
                         
                         pk <= digest_o;
                         valid_out <= '1';
+                        s_tlast_i <= '1';
                         s_tvalid_i <= '0';
                         compression_count <= 0;
                         loop_count <= 0;
