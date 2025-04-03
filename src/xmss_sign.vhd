@@ -54,12 +54,25 @@ entity xmss_sign is
            message_wots_sign : out STD_LOGIC_VECTOR (255 downto 0);
            sk_seed_wots_sign : out STD_LOGIC_VECTOR (255 downto 0);
            valid_in_wots_sign : out STD_LOGIC;
-           sig_wots_sign : in STD_LOGIC_VECTOR (17151 downto 0);
+           sig_wots_sign : in STD_LOGIC_VECTOR (255 downto 0);
            valid_out_wots_sign : in STD_LOGIC;
            ready_wots_sign : in STD_LOGIC;
            
+           din       : out std_logic_vector(255 downto 0);
+           wr_en     : out std_logic;
+           rd_en     : out std_logic;
+           dout      : in std_logic_vector(255 downto 0);
+           full      : in std_logic;
+           empty     : in std_logic;
+           
+           
+           
+           
+           
+           
+           
            -- xmss_sign outputs
-           sig_xmss : out STD_LOGIC_VECTOR (67*256 +8*256-1 downto 0);
+           sig_xmss : out STD_LOGIC_VECTOR (1*256 +0*256-1 downto 0);
            valid_out : out STD_LOGIC;
            ready : out STD_LOGIC);
 end xmss_sign;
@@ -72,6 +85,7 @@ signal state : state_type := idle;
 
 constant height : integer := 8; -- the height of the merkle tree, from the parameters
 signal j_count : integer := 0;
+signal wots_sign_count : integer := 0;
 
 signal message_reg : std_logic_vector(255 downto 0) := (others => '0');
 signal sk_seed_reg : std_logic_vector(255 downto 0) := (others => '0');
@@ -85,7 +99,7 @@ signal k : std_logic_vector(15 downto 0) := (others => '0');
 signal auth : std_logic_vector(height*256-1 downto 0) := (others => '0');
 
 -- store the wots_signature
-signal sig_wots_sign_reg : std_logic_vector(67*256 - 1 downto 0) := (others => '0');
+signal sig_wots_sign_reg : std_logic_vector(1*256 - 1 downto 0) := (others => '0');
 
 
 begin
@@ -107,6 +121,10 @@ begin
            sk_seed_wots_sign <= (others => '0');
            valid_in_wots_sign <= '0';
 
+           din       <= (others => '0');
+           wr_en     <= '0';
+           rd_en     <= '0';
+
            -- xmss_sign inputs
            sig_xmss <= (others => '0');
            valid_out <= '0';
@@ -125,7 +143,7 @@ begin
                     sk_seed_reg <= sk_seed;
                     idx_reg <= idx;
                     ready <= '0';
-                    state <= k_calc;
+                    state <= wots_sign;
                 else
                     valid_out <= '0';
                     ready <= '1';
@@ -134,11 +152,14 @@ begin
                 end if;
             
             when k_calc =>
+                din <= (others => '0');
+                wr_en <= '0';
+
                 if j_count < height then
                     k <= std_logic_vector(TO_UNSIGNED(to_integer(unsigned(idx_reg))/(2**j_count) ,  16)) xor "0000000000000001";
                     state <= auth_calc;
                 else
-                    state <= wots_sign;
+                    state <= sig_out;
                 end if;
             when auth_calc =>
                 if j_count < height then
@@ -153,17 +174,21 @@ begin
                        
                     elsif valid_out_xmss_node = '1' then
                         
-                        auth(255 + 256*j_count downto j_count*256) <= node_out_xmss_node;
+                        din <= node_out_xmss_node;
+                        wr_en <= '1';
                         j_count <= j_count + 1;
                         state <= k_calc;
                         
                     else
                         valid_in_xmss_node <= '0';
+                        wr_en <= '0';
+                        din <= (others => '0');
+                        
                         state <= auth_calc;
                     end if;
 
                 else
-                    state <= wots_sign;
+                    state <= idle;
                     
                 end if;
             
@@ -174,18 +199,28 @@ begin
                     message_wots_sign <= message_reg;
                     sk_seed_wots_sign <= sk_seed_reg;
                     valid_in_wots_sign <= '1';
+                    wr_en <= '0';
+                    din <= (others => '0');
                 elsif valid_out_wots_sign = '1' then
                 
-                    sig_wots_sign_reg <= sig_wots_sign;
-                    state <= sig_out;
+                    din <= sig_wots_sign;
+                    wr_en <= '1';
+                    wots_sign_count <= wots_sign_count + 1;
+                elsif wots_sign_count = 66 then
+                    wots_sign_count <= 0;
+                    state <= auth_calc;
+                    wr_en <= '0';
+                    din <= (others => '0');
                 else 
                 
                     valid_in_wots_sign <= '0';
+                    wr_en <= '0';
+                    din <= (others => '0');
                 end if;
             
             when sig_out =>
                 
-                sig_xmss <= sig_wots_sign_reg & auth;
+                sig_xmss <= (others => '0');
                 valid_out <= '1';
                 state <= idle;
             

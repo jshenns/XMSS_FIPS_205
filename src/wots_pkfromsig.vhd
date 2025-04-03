@@ -8,7 +8,7 @@ Port (
     reset           : in  std_logic;
     ready           : out std_logic;
     
-    sig             : in  std_logic_vector(17151 downto 0);
+    sig             : in  std_logic_vector(255 downto 0);
     M               : in  std_logic_vector(255 downto 0);
     data_in_valid   : in  std_logic;
     
@@ -54,7 +54,7 @@ constant w    : integer := 16;
 signal i : integer := 0;
 
 -- input registers
-signal sig_reg : std_logic_vector(17151 downto 0) := (others => '0');
+signal sig_reg : std_logic_vector(255 downto 0) := (others => '0');
 signal M_reg : std_logic_vector(255 downto 0) := (others => '0');
 
 -- internal signals
@@ -164,7 +164,7 @@ elsif rising_edge(clock) then
         
         when Sig_To_Array =>
             for i in 0 to len-1 loop
-                sig_array(i) <= sig_reg(17151-i*256 downto 16896-i*256);
+                sig_array(i) <= sig_reg;
             end loop;
             current_state <= Chain;
         

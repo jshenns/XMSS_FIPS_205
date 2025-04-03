@@ -37,12 +37,12 @@ entity xmss_pkFromSig is
            
            -- input signals
            message : in STD_LOGIC_VECTOR (255 downto 0);
-           sig : in STD_LOGIC_VECTOR (19199 downto 0);
+           sig : in STD_LOGIC_VECTOR (255 downto 0);
            idx : in STD_LOGIC_VECTOR (15 downto 0);
            valid_in : in STD_LOGIC;
            
            -- wots_pkFromSig signals
-           sig_wots_pkFromSig       : out STD_LOGIC_VECTOR (17151 downto 0);
+           sig_wots_pkFromSig       : out STD_LOGIC_VECTOR (255 downto 0);
            message_wots_pkFromSig   : out STD_LOGIC_VECTOR (255 downto 0);
            valid_in_wots_pkFromSig  : out STD_LOGIC;
            pk_wots_pkFromSig        : in STD_LOGIC_VECTOR (255 downto 0);
@@ -84,9 +84,9 @@ signal node_0 : std_logic_vector(255 downto 0) := (others => '0');
 signal node_1 : std_logic_vector(255 downto 0) := (others => '0');
 
 -- xmss_sig register
-signal xmss_auth_reg : std_logic_vector(256*height -1 downto 0) := (others => '0');
+signal xmss_auth_reg : std_logic_vector(256*1 -1 downto 0) := (others => '0');
 
-signal wots_sig_reg : std_logic_vector(17151 downto 0) := (others => '0');
+signal wots_sig_reg : std_logic_vector(255 downto 0) := (others => '0');
 
 -- message reg
 signal message_reg : std_logic_vector(255 downto 0) := (others => '0');
@@ -143,11 +143,11 @@ elsif rising_edge(clk) then
                 -- send the wots signature to the BRAM
 --                we_bram <= "1";
 --                addr_bram <= (others => '0');
-                wots_sig_reg <= sig(19199 downto 2048);
+                wots_sig_reg <= sig;
                 
                 
                 -- store xmss signature values in register
-                xmss_auth_reg <= sig(2047 downto 0);
+                xmss_auth_reg <= sig;
                 
                 -- store message
                 message_reg <= message;

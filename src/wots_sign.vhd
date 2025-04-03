@@ -12,7 +12,7 @@ entity wots_sign is
         data_in_valid   : in STD_LOGIC;
         
         ready           : out STD_LOGIC;
-        sig             : out STD_LOGIC_VECTOR(17151 downto 0);
+        sig             : out STD_LOGIC_VECTOR(255 downto 0);
         sig_valid       : out STD_LOGIC;
         
         -- triangle hash signals
@@ -63,7 +63,7 @@ type csum_array_type is array (0 to len2-1) of std_logic_vector(3 downto 0);
 signal csum_array : csum_array_type := (others => (others => '0'));
 
 signal sk : STD_LOGIC_VECTOR(255 downto 0) := (others => '0');
-signal sig_reg : std_logic_vector(17151 downto 0) := (others => '0');
+signal sig_reg : std_logic_vector(255 downto 0) := (others => '0');
 
 -- base_2b array
 type message_array_type is array (0 to len1-1) of integer range 0 to 16;
@@ -167,7 +167,9 @@ elsif rising_edge(clock) then
             state <= sk_hash;
         
         when sk_hash =>
-        
+                
+                   sig_valid <= '0';
+                   sig <= (others => '0');
                    if j <= len -1 then
                         
                         if chain_ready = '1' then
@@ -222,12 +224,10 @@ elsif rising_edge(clock) then
                     chain_valid_in <= '1';
                 
                 elsif chain_valid_out = '1' then    
-                    sig_reg(17151-j*256 downto 16896-j*256) <= chain_tmp;
+                    sig <= chain_tmp;
+                    sig_valid <= '1';
                     j <= j + 1;
-                    if j = len-1 then    
-                        sig <= sig_reg;
-                        sig_valid <= '1';
-                        
+                    if j = len-1 then                            
                         j <= 0;
                         state <= idle;
                     else

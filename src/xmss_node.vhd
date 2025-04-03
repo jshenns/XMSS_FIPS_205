@@ -34,7 +34,7 @@ entity xmss_node is
     -- ram ports
 
     we_bram : out STD_LOGIC_VECTOR(0 DOWNTO 0);
-    addr_bram : out STD_LOGIC_VECTOR(8 DOWNTO 0);
+    addr_bram : out STD_LOGIC_VECTOR(7 DOWNTO 0);
     din_bram : out STD_LOGIC_VECTOR(255 DOWNTO 0);
     dout_bram : in STD_LOGIC_VECTOR(255 DOWNTO 0);
 
@@ -153,7 +153,7 @@ begin
                 elsif valid_out_wots_pkGen = '1' and array_count < level_i then -- when a hash is done, register it in the node array
                     -- BRAM STUFF
                     we_bram <= "1";
-                    addr_bram <= std_logic_vector(TO_UNSIGNED(array_count, 9));
+                    addr_bram <= std_logic_vector(TO_UNSIGNED(array_count, 8));
                     din_bram <= pk_wots_pkGen;
                     
                     
@@ -165,7 +165,7 @@ begin
                     if t_h = 0 then -- if the target height was zero, we are done. Simply output the desired leaf.
                         -- BRAM stuff
                         if bram_count = 0 then
-                            addr_bram <= std_logic_vector(TO_UNSIGNED(t_i, 9));
+                            addr_bram <= std_logic_vector(TO_UNSIGNED(t_i, 8));
                             bram_count <= bram_count + 1;
                         elsif bram_count < 3 then
                             bram_count <= bram_count + 1;
@@ -217,13 +217,13 @@ begin
             if array_count < level_i then
                 if hash_ready = '1' then
                         if bram_count = 0 then
-                            addr_bram <= std_logic_vector(TO_UNSIGNED(i, 9));
+                            addr_bram <= std_logic_vector(TO_UNSIGNED(i, 8));
                             bram_count <= bram_count + 1;
                         elsif bram_count < 3 then
                             bram_count <= bram_count + 1;
                         elsif bram_count = 3 then
                             hash_reg_0 <= dout_bram;
-                            addr_bram <= std_logic_vector(TO_UNSIGNED(i, 9));
+                            addr_bram <= std_logic_vector(TO_UNSIGNED(i, 8));
                             bram_count <= bram_count + 1;
                         elsif bram_count < 6 then
                             bram_count <= bram_count + 1;
@@ -242,7 +242,7 @@ begin
                 
                 elsif hash_valid = '1' then
                     we_bram <= "1";
-                    addr_bram <= std_logic_vector(TO_UNSIGNED(array_count, 9));
+                    addr_bram <= std_logic_vector(TO_UNSIGNED(array_count, 8));
                     din_bram <= hash_out;
                     array_count <= array_count + 1;
 
@@ -263,7 +263,7 @@ begin
                 we_bram <= "0";
                 if t_h = z then
                     if bram_count = 0 then
-                        addr_bram <= std_logic_vector(TO_UNSIGNED(0, 9));
+                        addr_bram <= std_logic_vector(TO_UNSIGNED(0, 8));
                         bram_count <= bram_count + 1;
                     elsif bram_count < 3 then
                         bram_count <= bram_count + 1;
@@ -307,26 +307,26 @@ begin
              we_bram <= "0";
                 if hash_ready = '1' then
                         if bram_count = 0 then
-                            addr_bram <= std_logic_vector(TO_UNSIGNED(i, 9));
+                            addr_bram <= std_logic_vector(TO_UNSIGNED(i, 8));
                             bram_count <= bram_count + 1;
                         elsif bram_count < 3 then
                             bram_count <= bram_count + 1;
                         elsif bram_count = 3 then
                             hash_reg_0 <= dout_bram;
-                            addr_bram <= std_logic_vector(TO_UNSIGNED(i+1, 9));
+                            addr_bram <= std_logic_vector(TO_UNSIGNED(i+1, 8));
                             bram_count <= bram_count + 1;
                         elsif bram_count < 6 then
                             bram_count <= bram_count + 1;
                         elsif bram_count = 6 then
                             hash_reg_1 <= dout_bram;
                             bram_count <= bram_count + 1;
-                            addr_bram <= std_logic_vector(TO_UNSIGNED(i+2, 9));
+                            addr_bram <= std_logic_vector(TO_UNSIGNED(i+2, 8));
                         elsif bram_count < 9 then
                             bram_count <= bram_count + 1;
                         elsif bram_count = 9 then
                             hash_reg_2 <= dout_bram;
                             bram_count <= bram_count + 1;
-                            addr_bram <= std_logic_vector(TO_UNSIGNED(i+3, 9));
+                            addr_bram <= std_logic_vector(TO_UNSIGNED(i+3, 8));
                         elsif bram_count < 12 then
                             bram_count <= bram_count + 1;
                         elsif bram_count = 12 then
@@ -349,7 +349,7 @@ begin
                 
                 elsif hash_valid = '1' then
                     we_bram <= "1";
-                    addr_bram <= std_logic_vector(TO_UNSIGNED(array_count, 9));
+                    addr_bram <= std_logic_vector(TO_UNSIGNED(array_count, 8));
                     din_bram <= hash_out;
                     hash_mode <= '0';
                     array_count <= array_count + 1;
@@ -373,7 +373,7 @@ begin
                 we_bram <= "0";
                 if t_h = z then
                     if bram_count = 0 then
-                        addr_bram <= std_logic_vector(TO_UNSIGNED(0, 9));
+                        addr_bram <= std_logic_vector(TO_UNSIGNED(0, 8));
                         bram_count <= bram_count + 1;
                     elsif bram_count < 3 then
                         bram_count <= bram_count + 1;

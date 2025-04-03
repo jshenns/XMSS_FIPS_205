@@ -12,13 +12,13 @@ entity control_system is
     message_in         : in std_logic_vector(255 downto 0);
     node_target_height : in std_logic_vector(15 downto 0);
     node_target_index  : in std_logic_vector(15 downto 0);
-    sig_in             : in std_logic_vector(67*256 + 8*256 -1 downto 0);    
+    sig_in             : in std_logic_vector(0*256 + 1*256 -1 downto 0);    
     node_valid_in      : in std_logic;
     
     op_out             : out std_logic_vector(1 downto 0);
     pk_out             : out std_logic_vector(255 downto 0);
     pkFromSig_out      : out std_logic_vector(255 downto 0);
-    sig_xmss_out       : out std_logic_vector(256*8 + 67*256 -1 downto 0);
+    sig_xmss_out       : out std_logic_vector(256*0 + 1*256 -1 downto 0);
     node_valid_out     : out std_logic;
     node_ready         : out std_logic                   
   );
@@ -50,17 +50,30 @@ signal node_secret_seed_reg   : std_logic_vector(255 downto 0) := (others => '0'
 signal message_in_reg         : std_logic_vector(255 downto 0) := (others => '0');
 signal node_target_height_reg : std_logic_vector(15 downto 0) := (others => '0');
 signal node_target_index_reg  : std_logic_vector(15 downto 0) := (others => '0');
-signal sig_in_reg             : std_logic_vector(67*256 + 8*256 -1 downto 0) := (others => '0');
+signal sig_in_reg             : std_logic_vector(1*256 + 0*256 -1 downto 0) := (others => '0');
 
-signal pk_out_reg : std_logic_vector(256 downto 0) := (others => '0');
-signal pk_fromSig_out_reg : std_logic_vector(256 downto 0) := (others => '0');
-signal sig_xmss_out_reg : std_logic_vector(256*67 + 256*8 - 1 downto 0) := (others => '0');
+signal pk_out_reg : std_logic_vector(255 downto 0) := (others => '0');
+signal pk_fromSig_out_reg : std_logic_vector(255 downto 0) := (others => '0');
+signal sig_xmss_out_reg : std_logic_vector(256*1 + 256*0 - 1 downto 0) := (others => '0');
 
 -- xmss_node to bram
 signal we_bram_xmss : STD_LOGIC_VECTOR(0 DOWNTO 0) := "0";
-signal addr_bram_xmss : STD_LOGIC_VECTOR(8 DOWNTO 0) := (others => '0');
+signal addr_bram_xmss : STD_LOGIC_VECTOR(7 DOWNTO 0) := (others => '0');
 signal din_bram_xmss : STD_LOGIC_VECTOR(255 DOWNTO 0) := (others => '0');
 signal dout_bram_xmss : STD_LOGIC_VECTOR(255 DOWNTO 0) := (others => '0');
+
+-- bram fifo signals
+signal sig_fifo_din    : std_logic_vector(255 downto 0) := (others => '0');
+signal sig_fifo_wr_en  : std_logic := '0';
+signal sig_fifo_rd_en  : std_logic := '0';
+signal sig_fifo_dout   : std_logic_vector(255 downto 0) := (others => '0');
+signal sig_fifo_full   : std_logic := '0';
+signal sig_fifo_empty  : std_logic := '0';
+
+
+
+
+
 
 
 -- HASH MUX SIGNALS 
@@ -121,7 +134,7 @@ signal message_wots_sign   : std_logic_vector(255 downto 0) := (others => '0');
 signal sk_seed_wots_sign   : std_logic_vector(255 downto 0) := (others => '0');
 signal valid_in_wots_sign  : std_logic := '0';
 signal ready_wots_sign     : std_logic := '0';
-signal sig_wots_sign       : std_logic_vector(17151 downto 0) := (others => '0');
+signal sig_wots_sign       : std_logic_vector(255 downto 0) := (others => '0');
 signal sig_valid_wots_sign : std_logic := '0';
 
 -- wots sign to chain mux        
@@ -196,7 +209,7 @@ signal xmss_node_hash_ready : std_logic := '0';
 
 -- xmss_pkFromSig inputs
 signal message  :  STD_LOGIC_VECTOR (255 downto 0);  
-signal sig      :  STD_LOGIC_VECTOR (19199 downto 0);  
+signal sig      :  STD_LOGIC_VECTOR (256*1 + 256*0-1 downto 0);  
 signal idx      :  STD_LOGIC_VECTOR (15 downto 0);   
 signal valid_in_xmss_pkFromSig :  STD_LOGIC;  
 
@@ -208,7 +221,7 @@ signal idx_xmss_sign     : std_logic_vector(15 downto 0) := (others => '0');
 signal valid_in_xmss_sign : std_logic := '0';
 
 --xmss_sign outputs
-signal sig_xmss_sign :std_logic_vector(67*256 + 8*256 -1 downto 0) := (others => '0');
+signal sig_xmss_sign :std_logic_vector(1*256 + 0*256 -1 downto 0) := (others => '0');
 signal valid_out_xmss_sign : std_logic := '0';
 signal ready_xmss_sign : std_logic := '0';
 
@@ -223,7 +236,7 @@ signal ready_xmss_pkFromSig     : STD_LOGIC;
 
 
 -- xmss_pkFromSig to wots_pkFromSig signals
-signal sig_wots_pkFromSig       : STD_LOGIC_VECTOR (17151 downto 0);
+signal sig_wots_pkFromSig       : STD_LOGIC_VECTOR (255 downto 0);
 signal message_wots_pkFromSig   : STD_LOGIC_VECTOR (255 downto 0);  
 signal valid_in_wots_pkFromSig  : STD_LOGIC;                        
 signal pk_wots_pkFromSig        : STD_LOGIC_VECTOR (255 downto 0);  
@@ -326,7 +339,19 @@ port map(
     douta => dout_bram_xmss
 );
 
+my_sig_fifo : entity work.sig_fifo
+port map(
+    clk => clock,
+    srst => reset,
 
+    din   => sig_fifo_din  ,
+    wr_en => sig_fifo_wr_en,
+    rd_en => sig_fifo_rd_en,
+    dout  => sig_fifo_dout ,
+    full  => sig_fifo_full ,
+    empty => sig_fifo_empty
+
+);
 
 my_chain : entity work.chain
 
@@ -640,6 +665,20 @@ my_xmss_sign : entity work.xmss_sign(behavioral)
            sig_wots_sign       => sig_wots_sign     ,
            valid_out_wots_sign => sig_valid_wots_sign        ,
            ready_wots_sign     => ready_wots_sign  ,
+           
+           
+          
+           -- fifos
+           din   => sig_fifo_din  ,
+           wr_en => sig_fifo_wr_en,
+           rd_en => sig_fifo_rd_en,
+           dout  => sig_fifo_dout ,
+           full  => sig_fifo_full ,             
+           empty => sig_fifo_empty, 
+           
+           
+           
+           
            
            -- xmss_sign outputs
            sig_xmss => sig_xmss_sign,
