@@ -58,6 +58,7 @@ entity xmss_sign is
            valid_out_wots_sign : in STD_LOGIC;
            ready_wots_sign : in STD_LOGIC;
            
+           -- signature fifo signals 
            din       : out std_logic_vector(255 downto 0);
            wr_en     : out std_logic;
            rd_en     : out std_logic;

@@ -65,6 +65,10 @@ entity xmss_pkFromSig is
 --           addr_bram : out STD_LOGIC_VECTOR(8 DOWNTO 0);
 --           din_bram  : out STD_LOGIC_VECTOR(255 DOWNTO 0);
 --           dout_bram : in STD_LOGIC_VECTOR(255 DOWNTO 0);
+
+
+
+        
     
            
            -- output signals
@@ -115,6 +119,7 @@ if reset = '1' then
     sig_wots_pkFromSig            <= (others => '0') ;
     message_wots_pkFromSig        <= (others => '0') ;
     valid_in_wots_pkFromSig       <= '0'             ;
+
 
                                  
     hash_mode          <= '0';
