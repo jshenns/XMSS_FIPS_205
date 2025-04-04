@@ -433,6 +433,7 @@ def main():
     sha_digest = F(hex_input)
     print(sha_digest)
     sha_digest_hex = digest_to_hex(sha_digest)
+    print(sha_digest_hex)
 
     # Compute chain intermediate values (e.g., 5 iterations) and the final chain value.
     chain_vals = chain_intermediate(hex_input, 5)
