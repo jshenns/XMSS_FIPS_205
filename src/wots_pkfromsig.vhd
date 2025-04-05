@@ -160,8 +160,9 @@ elsif rising_edge(clock) then
                     con_message_array(i) <= message_array(i-3);
                 end if;    
             end loop;
-            current_state <= Sig_To_Array;
-        
+            --current_state <= Sig_To_Array;
+            current_state <= chain;
+
         when Sig_To_Array =>
             for i in 0 to len-1 loop
                 sig_array(i) <= sig_reg;

@@ -66,12 +66,6 @@ entity xmss_sign is
            full      : in std_logic;
            empty     : in std_logic;
            
-           
-           
-           
-           
-           
-           
            -- xmss_sign outputs
            sig_xmss : out STD_LOGIC_VECTOR (1*256 +0*256-1 downto 0);
            valid_out : out STD_LOGIC;
@@ -81,12 +75,13 @@ end xmss_sign;
 architecture Behavioral of xmss_sign is
 
 -- state machine signals
-type state_type is (idle, k_calc, auth_calc, wots_sign, sig_out);
+type state_type is (idle, k_calc, auth_calc, wots_sign, fifo_dump);
 signal state : state_type := idle;
 
 constant height : integer := 8; -- the height of the merkle tree, from the parameters
 signal j_count : integer := 0;
 signal wots_sign_count : integer := 0;
+signal fifo_count : integer := 0;
 
 signal message_reg : std_logic_vector(255 downto 0) := (others => '0');
 signal sk_seed_reg : std_logic_vector(255 downto 0) := (others => '0');
@@ -160,7 +155,7 @@ begin
                     k <= std_logic_vector(TO_UNSIGNED(to_integer(unsigned(idx_reg))/(2**j_count) ,  16)) xor "0000000000000001";
                     state <= auth_calc;
                 else
-                    state <= sig_out;
+                    state <= fifo_dump;
                 end if;
             when auth_calc =>
                 if j_count < height then
@@ -189,7 +184,7 @@ begin
                     end if;
 
                 else
-                    state <= idle;
+                    state <= fifo_dump;
                     
                 end if;
             
@@ -219,12 +214,23 @@ begin
                     din <= (others => '0');
                 end if;
             
-            when sig_out =>
-                
-                sig_xmss <= (others => '0');
-                valid_out <= '1';
-                state <= idle;
-            
+                when fifo_dump =>
+                    fifo_count <= fifo_count + 1;
+
+                    if empty = '0' then
+                        rd_en <= '1';
+                        sig_xmss <= dout;
+                        if fifo_count > 2 then
+                            valid_out <= '1';
+                        end if;
+
+                    elsif empty = '1' then
+                        rd_en <= '0';
+                        sig_xmss <= (others => '0');
+                        valid_out <= '0';     
+                        fifo_count <= 0;    
+                        state <= idle;                    
+                    end if;
         end case; 
         
         

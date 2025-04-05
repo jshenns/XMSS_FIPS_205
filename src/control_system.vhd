@@ -70,10 +70,20 @@ signal sig_fifo_dout   : std_logic_vector(255 downto 0) := (others => '0');
 signal sig_fifo_full   : std_logic := '0';
 signal sig_fifo_empty  : std_logic := '0';
 
+-- bram fifo mux
+signal pk_from_sig_fifo_din    : std_logic_vector(255 downto 0) := (others => '0');
+signal pk_from_sig_fifo_wr_en  : std_logic := '0';
+signal pk_from_sig_fifo_rd_en  : std_logic := '0';
 
+signal xmss_sig_fifo_din    : std_logic_vector(255 downto 0) := (others => '0');
+signal xmss_sig_fifo_wr_en  : std_logic := '0';
+signal xmss_sig_fifo_rd_en  : std_logic := '0';
 
+signal din_top   : std_logic_vector(255 downto 0) := (others => '0');
+signal wr_en_top : std_logic := '0';
+signal rd_en_top : std_logic := '0';
 
-
+signal fifo_count : integer := 0;
 
 
 -- HASH MUX SIGNALS 
@@ -339,6 +349,37 @@ port map(
     douta => dout_bram_xmss
 );
 
+
+my_sig_fifo_mux : entity work.sig_fifo_mux
+port map(
+
+
+    clock => clock,
+    reset => reset,
+    
+    -- pk from sig input
+    din_xmss_pk_from_sig   => pk_from_sig_fifo_din,
+    wr_en_xmss_pk_from_sig => pk_from_sig_fifo_wr_en,
+    rd_en_xmss_pk_from_sig => pk_from_sig_fifo_rd_en,
+
+    -- xmss sig input 
+    din_xmss_sig   => xmss_sig_fifo_din,
+    wr_en_xmss_sig => xmss_sig_fifo_wr_en,
+    rd_en_xmss_sig => xmss_sig_fifo_rd_en,
+
+    -- top input
+    din_global   => din_top,
+    wr_en_global=> wr_en_top,
+    rd_en_global => rd_en_top,
+
+
+    -- signature fifo signals 
+    din_fifo       => sig_fifo_din,
+    wr_en_fifo     => sig_fifo_wr_en,
+    rd_en_fifo     => sig_fifo_rd_en
+
+);
+
 my_sig_fifo : entity work.sig_fifo
 port map(
     clk => clock,
@@ -508,7 +549,7 @@ my_xmss_node_mux : entity work.xmss_node_mux(behavioral)
         secret_seed_xmss_sign   => secret_seed_xmss_sign      ,
         target_height_xmss_sign => target_height_xmss_sign    ,
         target_index_xmss_sign  => target_index_xmss_sign     ,
-        valid_in_xmss_sign      => valid_in_xmss_sign_node_mux,
+        valid_in_xmss_sign_component      => valid_in_xmss_sign_node_mux,
         
                 
         -- outputs
@@ -665,19 +706,17 @@ my_xmss_sign : entity work.xmss_sign(behavioral)
            sig_wots_sign       => sig_wots_sign     ,
            valid_out_wots_sign => sig_valid_wots_sign        ,
            ready_wots_sign     => ready_wots_sign  ,
-           
-           
+
           
            -- fifos
-           din   => sig_fifo_din  ,
-           wr_en => sig_fifo_wr_en,
-           rd_en => sig_fifo_rd_en,
+           din   => xmss_sig_fifo_din  ,
+           wr_en => xmss_sig_fifo_wr_en,
+           rd_en => xmss_sig_fifo_rd_en,
+
+
            dout  => sig_fifo_dout ,
            full  => sig_fifo_full ,             
            empty => sig_fifo_empty, 
-           
-           
-           
            
            
            -- xmss_sign outputs
@@ -715,6 +754,18 @@ my_xmss_pkFromSig : entity work.xmss_pkFromSig
         hash_data_in_2     => hash_data_in_2_xmss_pkFromSig    ,
         hash_data_in_3     => hash_data_in_3_xmss_pkFromSig    ,
         hash_data_in_valid => hash_data_in_valid_xmss_pkFromSig,
+
+        -- fifos
+        din   => pk_from_sig_fifo_din  ,
+        wr_en => pk_from_sig_fifo_wr_en,
+        rd_en => pk_from_sig_fifo_rd_en,
+
+
+        dout  => sig_fifo_dout ,
+        full  => sig_fifo_full ,             
+        empty => sig_fifo_empty, 
+
+        
 
         hash_out           => node_hash_out          ,
         hash_valid         => node_hash_valid        ,
@@ -797,6 +848,7 @@ my_wots_pkFromSig : entity work.wots_pkFromSig
                     
                     if node_valid_in = '1' then
 
+                        fifo_count <= fifo_count + 1;
                         op_input_reg           <= op_input;
                         node_secret_seed_reg   <= node_secret_seed;
                         message_in_reg         <= message_in;
@@ -806,16 +858,25 @@ my_wots_pkFromSig : entity work.wots_pkFromSig
                         node_ready <= '0';
                     
                         if op_input = "01" then
-                            
                             state <= pk_gen;
-                
                         elsif op_input = "10" then
                             
                             state <= sig_gen;
 
                         elsif op_input = "11" then
                 
-                            state <= pk_fromSig;
+   
+                            
+                            if fifo_count < 73 then
+                                wr_en_top <= '1';
+                                din_top <= sig_in;
+                                state <= idle;
+                            elsif fifo_count = 73 then
+                                state <= pk_fromSig;
+                                wr_en_top <= '0';
+                                din_top <= (others => '0');
+                            end if;
+
 
                         else
                             state <= idle;
@@ -826,7 +887,8 @@ my_wots_pkFromSig : entity work.wots_pkFromSig
                             node_target_height_reg <= (others => '0');
                             node_target_index_reg  <= (others => '0');
                             sig_in_reg             <= (others => '0');
-    
+                            din_top <= (others => '0');
+                            wr_en_top <= '0';
                         end if;
 
 
@@ -835,7 +897,30 @@ my_wots_pkFromSig : entity work.wots_pkFromSig
 
                     end if;
                     
-        
+                when pk_fromSig =>                    
+
+                    if node_hash_ready = '1' then
+
+                        message                 <= message_in_reg;
+                        idx                     <= node_target_index_reg;
+                        valid_in_xmss_pkFromSig <= '1';
+                    
+                    elsif node_hash_valid = '1' then
+
+                        op_out             <= op_input_reg;
+                        pk_out             <= (others => '0');
+                        pkFromSig_out      <= node_hash_out;
+                        sig_xmss_out       <= (others => '0');
+                        node_valid_out     <= '1';
+                        node_ready         <= '0';         
+                        state <= idle;                    
+
+                    else
+                        message                   <= (others => '0');
+                        idx                       <= (others => '0');
+                        valid_in_xmss_pkFromSig   <= '0';
+
+                    end if;
 
                 when pk_gen => 
                     if xmss_node_hash_ready = '1' then
@@ -856,22 +941,20 @@ my_wots_pkFromSig : entity work.wots_pkFromSig
                         state <= idle;                    
 
                     else
-                        secret_seed_key_gen       <= (others => '0');
                         target_height_key_gen     <= (others => '0');
                         target_index_key_gen      <= (others => '0');
                         valid_in_key_gen          <= '0';
 
                     end if;
-                when sig_gen => 
+                when sig_gen =>
 
                     if ready_xmss_sign = '1' then
        
-                        message_xmss_sign  <= message_in_reg;
-                        sk_seed_xmss_sign  <= node_secret_seed_reg;
-                        idx_xmss_sign      <= node_target_index_reg;
-                        valid_in_xmss_sign <= '1';
-                        
-                                            
+                            message_xmss_sign  <= message_in_reg;
+                            sk_seed_xmss_sign  <= node_secret_seed_reg;
+                            idx_xmss_sign      <= node_target_index_reg;
+                            valid_in_xmss_sign <= '1';
+                                               
                     elsif valid_out_xmss_sign = '1' then
 
                         op_out             <= op_input_reg;
@@ -879,9 +962,11 @@ my_wots_pkFromSig : entity work.wots_pkFromSig
                         pkFromSig_out      <= (others => '0');
                         sig_xmss_out       <= sig_xmss_sign;
                         node_valid_out     <= '1';
-                        node_ready         <= '0';         
-                        state <= idle;                    
-
+                        node_ready         <= '0';      
+                        if sig_fifo_empty = '1' then
+                            state <= idle;
+                        end if;       
+                    
                     else
                         message_xmss_sign      <= (others => '0');
                         sk_seed_xmss_sign      <= (others => '0');
@@ -889,33 +974,9 @@ my_wots_pkFromSig : entity work.wots_pkFromSig
                         valid_in_xmss_sign     <= '0';
 
                     end if;
+             when others => 
+                state <= idle;
 
-                when pk_fromSig =>
-
-                    if ready_xmss_pkFromSig = '1' then
-                        message                 <= message_in_reg;
-                        sig                     <= sig_in_reg;
-                        idx                     <= node_target_index_reg;
-                        valid_in_xmss_pkFromSig <= '1';
-                        
-                                            
-                    elsif valid_out_xmss_pkFromSig = '1' then
-
-                        op_out             <= op_input_reg;
-                        pk_out             <= (others => '0');
-                        pkFromSig_out      <= pk_xmss_pkFromSig;
-                        sig_xmss_out       <= (others => '0');
-                        node_valid_out     <= '1';
-                        node_ready         <= '0';         
-                        state <= idle;                    
-
-                    else
-                        message                    <= (others => '0');
-                        sig                        <= (others => '0');
-                        idx                        <= (others => '0');
-                        valid_in_xmss_pkFromSig    <= '0';
-
-                    end if;
             end case;
         end if;
     end process;

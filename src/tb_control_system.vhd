@@ -58,7 +58,7 @@ architecture behavioral of tb_control_system is
 
     -- Apply a test input
     wait for clock_period;
-    op_in <= "01"; -- xmss sign
+    op_in <= "10"; -- xmss sign
     secret_seed <= x"0000000000000000000000000000000000000000000000000000000000000001"; -- Example seed
     message_in <=  x"0000000000000000000000000000000000000000000000000000000000000001";
     sig_xmss_in <= (others => '0');

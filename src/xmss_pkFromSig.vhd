@@ -66,7 +66,13 @@ entity xmss_pkFromSig is
 --           din_bram  : out STD_LOGIC_VECTOR(255 DOWNTO 0);
 --           dout_bram : in STD_LOGIC_VECTOR(255 DOWNTO 0);
 
-
+        --signature fifo signals 
+        din       : out std_logic_vector(255 downto 0);
+        wr_en     : out std_logic;
+        rd_en     : out std_logic;
+        dout      : in std_logic_vector(255 downto 0);
+        full      : in std_logic;
+        empty     : in std_logic;
 
         
     
@@ -98,6 +104,8 @@ signal message_reg : std_logic_vector(255 downto 0) := (others => '0');
 -- index
 signal index_reg : integer := 0;
 
+signal fifo_count : integer := 0;
+
 ---- BRAM signals for wots_sig
 --signal bram_count : integer := 0;
 
@@ -119,6 +127,10 @@ if reset = '1' then
     sig_wots_pkFromSig            <= (others => '0') ;
     message_wots_pkFromSig        <= (others => '0') ;
     valid_in_wots_pkFromSig       <= '0'             ;
+
+    din       <= (others => '0') ;
+    wr_en     <= '0';
+    rd_en     <= '0';
 
 
                                  
@@ -148,11 +160,11 @@ elsif rising_edge(clk) then
                 -- send the wots signature to the BRAM
 --                we_bram <= "1";
 --                addr_bram <= (others => '0');
-                wots_sig_reg <= sig;
+                --wots_sig_reg <= sig;
                 
                 
                 -- store xmss signature values in register
-                xmss_auth_reg <= sig;
+                --xmss_auth_reg <= sig;
                 
                 -- store message
                 message_reg <= message;
@@ -183,8 +195,15 @@ elsif rising_edge(clk) then
                 sig_wots_pkFromSig  <= wots_sig_reg;   
                 message_wots_pkFromSig <= message_reg;
                 valid_in_wots_pkFromSig <= '1';
-                                
-                
+
+                fifo_count <= fifo_count + 1;
+
+                if fifo_count < 73 then
+                    rd_en <= '1';
+                    sig_wots_pkFromSig <= dout;
+                    
+                end if;
+
                 
             elsif valid_out_wots_pkFromSig = '1'  then
                 
@@ -195,6 +214,8 @@ elsif rising_edge(clk) then
                 sig_wots_pkFromSig  <= (others => '0'); 
                 message_wots_pkFromSig <= (others => '0'); 
                 valid_in_wots_pkFromSig <= '0';
+                rd_en <= '0';
+                sig_wots_pkFromSig <= (others => '0');
                 
             end if;
             

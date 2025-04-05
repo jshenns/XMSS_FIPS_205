@@ -26,7 +26,7 @@ entity xmss_node_mux is
         secret_seed_xmss_sign   : in std_logic_vector(255 downto 0);
         target_height_xmss_sign : in std_logic_vector(15 downto 0);
         target_index_xmss_sign  : in std_logic_vector(15 downto 0);
-        valid_in_xmss_sign      : in std_logic;
+        valid_in_xmss_sign_component      : in std_logic;
         
                 
         -- outputs
@@ -64,7 +64,7 @@ elsif rising_edge(clock) then
     
 
         
-    elsif valid_in_xmss_sign = '1' then 
+    elsif valid_in_xmss_sign_component = '1' then 
         secret_seed <= secret_seed_xmss_sign;
         target_height <= target_height_xmss_sign;
         target_index <= target_index_xmss_sign;
