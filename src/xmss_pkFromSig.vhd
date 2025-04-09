@@ -113,7 +113,7 @@ signal fifo_count : integer := 0;
 signal k_calc_reg : std_logic_vector(15 downto 0) := (others => '0');
 
 -- states
-type state_type is (idle, wots_pkFromSig, k_calc, verify);  -- Define the state type
+type state_type is (idle, wots_pkFromSig, k_calc, grab_data_1, verify);  -- Define the state type
 signal state : state_type := idle;       -- Declare the state signal, initialized to idle
 
 
@@ -192,17 +192,11 @@ elsif rising_edge(clk) then
             
             if ready_wots_pkFromSig = '1' then
                 
-                sig_wots_pkFromSig  <= wots_sig_reg;   
+                sig_wots_pkFromSig  <= (others => '0');   
                 message_wots_pkFromSig <= message_reg;
                 valid_in_wots_pkFromSig <= '1';
 
-                fifo_count <= fifo_count + 1;
-
-                if fifo_count < 73 then
-                    rd_en <= '1';
-                    sig_wots_pkFromSig <= dout;
-                    
-                end if;
+                --fifo_count <= fifo_count + 1;
 
                 
             elsif valid_out_wots_pkFromSig = '1'  then
@@ -223,8 +217,24 @@ elsif rising_edge(clk) then
         when k_calc =>
             
             k_calc_reg <= std_logic_vector(to_unsigned(index_reg/(2**k),16));
-            state <= verify;
+            if k < height -1 then
+                state <= grab_data_1;
+            else
+                state <= grab_data_1;
+            end if;
         
+        when grab_data_1 =>
+            if fifo_count < 1 then
+                rd_en <= '1';
+                fifo_count <= fifo_count + 1;
+            else
+                fifo_count <= 0;
+                rd_en <= '0';
+                xmss_auth_reg <= dout;
+                state <= verify;
+            end if;
+
+
         when verify => 
             if k < height then
                 
@@ -232,7 +242,7 @@ elsif rising_edge(clk) then
                     
                     if hash_ready = '1' then
                         hash_data_in_0 <= node_0;
-                        hash_data_in_1 <= xmss_auth_reg(255 + 256*k downto k*256);
+                        hash_data_in_1 <= xmss_auth_reg;
                         hash_data_in_valid <= '1';
 
                     

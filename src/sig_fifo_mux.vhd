@@ -21,6 +21,11 @@ entity sig_fifo_mux is
         wr_en_xmss_pk_from_sig : in std_logic;
         rd_en_xmss_pk_from_sig : in std_logic;
 
+        -- wots pk from sig input
+        din_wots_pk_from_sig   : in std_logic_vector(255 downto 0);
+        wr_en_wots_pk_from_sig : in std_logic;
+        rd_en_wots_pk_from_sig : in std_logic;
+
         -- xmss sig input 
         din_xmss_sig   : in std_logic_vector(255 downto 0);
         wr_en_xmss_sig : in std_logic;
@@ -60,7 +65,14 @@ elsif rising_edge(clock) then
         wr_en_fifo <= wr_en_xmss_pk_from_sig;
         rd_en_fifo <= rd_en_xmss_pk_from_sig;
 
-        
+    
+    elsif wr_en_wots_pk_from_sig = '1' or rd_en_wots_pk_from_sig = '1' then
+    
+        din_fifo   <= din_wots_pk_from_sig;
+        wr_en_fifo <= wr_en_wots_pk_from_sig;
+        rd_en_fifo <= rd_en_wots_pk_from_sig;
+
+
     elsif wr_en_xmss_sig = '1' or rd_en_xmss_sig = '1' then
         
         din_fifo   <= din_xmss_sig;

@@ -313,6 +313,7 @@ def wots_sign(M, SK_seed):
 
     msg = str(M[2:]) + str(csum[3:6])
     print(msg)
+    print(msg[::-1])
     print(len(msg))
 
     for i in range(67):
@@ -471,19 +472,25 @@ def main():
     hex_auth = ""
 
     for i in range(8):
+        #auth[i] = hash_format("1111111111111111111111111111111111111111111111111111111111111111")
         hex_auth = hex_auth + str(digest_to_hex(new_auth[i]))
+        print("auth " + str(i) + ": " + str(digest_to_hex(new_auth[i])))
 
     for i in range(67):
+        #wots_sig[i] = hash_format("1111111111111111111111111111111111111111111111111111111111111111")
         hex_wots_sig = hex_wots_sig + str(digest_to_hex(new_wots_sig[i]))
+        print("wots_sig "+ str(i) + ": " + str(digest_to_hex(new_wots_sig[i])))
 
+    
 
-
-    print("wots_sig: " +hex_wots_sig)
+    #print(wots_sig)
+    #print(auth )
 
     wots_pkFromSig_test = wots_pkFromSig(message, wots_sig)
-    print("wots calc pk: " + str(digest_to_hex(wots_pkFromSig_test)))
+    #print("wots calc pk: " + str(digest_to_hex(wots_pkFromSig_test)))
 
-    print("xmss_sig: " + hex_wots_sig+hex_auth)
+    #for i in range(74):
+        #print("xmss_sig: " + hex_wots_sig+hex_auth)
 
     for i in range(len(auth)):
         auth[i] = digest_to_hex(auth[i])
@@ -491,7 +498,7 @@ def main():
     for i in range(len(sig)):
         sig[i] = digest_to_hex(sig[i])
 
-    print("auth: " + str(auth))
+    #print("auth: " + str(auth))
 
     # Build a formatted string for the authentication path.
     auth_formatted = "\n".join("Level {}: {}".format(i, auth[i]) for i in range(len(auth)))

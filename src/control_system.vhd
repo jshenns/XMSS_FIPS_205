@@ -75,6 +75,11 @@ signal pk_from_sig_fifo_din    : std_logic_vector(255 downto 0) := (others => '0
 signal pk_from_sig_fifo_wr_en  : std_logic := '0';
 signal pk_from_sig_fifo_rd_en  : std_logic := '0';
 
+signal wots_pk_from_sig_fifo_din    : std_logic_vector(255 downto 0) := (others => '0');
+signal wots_pk_from_sig_fifo_wr_en  : std_logic := '0';
+signal wots_pk_from_sig_fifo_rd_en  : std_logic := '0';
+
+
 signal xmss_sig_fifo_din    : std_logic_vector(255 downto 0) := (others => '0');
 signal xmss_sig_fifo_wr_en  : std_logic := '0';
 signal xmss_sig_fifo_rd_en  : std_logic := '0';
@@ -218,10 +223,10 @@ signal xmss_node_hash_valid : std_logic := '0';
 signal xmss_node_hash_ready : std_logic := '0';
 
 -- xmss_pkFromSig inputs
-signal message  :  STD_LOGIC_VECTOR (255 downto 0);  
-signal sig      :  STD_LOGIC_VECTOR (256*1 + 256*0-1 downto 0);  
-signal idx      :  STD_LOGIC_VECTOR (15 downto 0);   
-signal valid_in_xmss_pkFromSig :  STD_LOGIC;  
+signal message  :  STD_LOGIC_VECTOR (255 downto 0) := (others => '0');  
+signal sig      :  STD_LOGIC_VECTOR (256*1 + 256*0-1 downto 0) := (others => '0');  
+signal idx      :  STD_LOGIC_VECTOR (15 downto 0) := (others => '0');   
+signal valid_in_xmss_pkFromSig :  STD_LOGIC := '0';  
 
 
 -- xmss_sign inputs
@@ -246,23 +251,23 @@ signal ready_xmss_pkFromSig     : STD_LOGIC;
 
 
 -- xmss_pkFromSig to wots_pkFromSig signals
-signal sig_wots_pkFromSig       : STD_LOGIC_VECTOR (255 downto 0);
-signal message_wots_pkFromSig   : STD_LOGIC_VECTOR (255 downto 0);  
-signal valid_in_wots_pkFromSig  : STD_LOGIC;                        
-signal pk_wots_pkFromSig        : STD_LOGIC_VECTOR (255 downto 0);  
-signal valid_out_wots_pkFromSig : STD_LOGIC;                        
-signal ready_wots_pkFromSig     : STD_LOGIC;                                                         
+signal sig_wots_pkFromSig       : STD_LOGIC_VECTOR (255 downto 0) := (others => '0');
+signal message_wots_pkFromSig   : STD_LOGIC_VECTOR (255 downto 0) := (others => '0');  
+signal valid_in_wots_pkFromSig  : STD_LOGIC := '0';                        
+signal pk_wots_pkFromSig        : STD_LOGIC_VECTOR (255 downto 0) := (others => '0');  
+signal valid_out_wots_pkFromSig : STD_LOGIC := '0';                        
+signal ready_wots_pkFromSig     : STD_LOGIC := '0';                                                         
                                          
 -- wots_pkFromSig to chain mux           
-signal chain_x_wots_pkFromSig             : STD_LOGIC_VECTOR(255 downto 0); 
-signal chain_i_wots_pkFromSig             : STD_LOGIC_VECTOR(15 downto 0);  
-signal chain_s_wots_pkFromSig             : STD_LOGIC_VECTOR(15 downto 0);  
-signal chain_data_in_valid_wots_pkFromSig : STD_LOGIC;                      
+signal chain_x_wots_pkFromSig             : STD_LOGIC_VECTOR(255 downto 0) := (others => '0'); 
+signal chain_i_wots_pkFromSig             : STD_LOGIC_VECTOR(15 downto 0) := (others => '0');  
+signal chain_s_wots_pkFromSig             : STD_LOGIC_VECTOR(15 downto 0) := (others => '0');  
+signal chain_data_in_valid_wots_pkFromSig : STD_LOGIC := '0';                      
 
 -- wots_pkFromSig to chain output                  
-signal chain_ready_wots_pkFromSig          :  STD_LOGIC;                     
-signal chain_tmp_wots_pkFromSig            :  STD_LOGIC_VECTOR(255 downto 0);
-signal chain_data_out_valid_wots_pkFromSig :  STD_LOGIC;                     
+signal chain_ready_wots_pkFromSig          :  STD_LOGIC := '0';                     
+signal chain_tmp_wots_pkFromSig            :  STD_LOGIC_VECTOR(255 downto 0) := (others => '0');
+signal chain_data_out_valid_wots_pkFromSig :  STD_LOGIC := '0';                     
 
 -- wots_pkFromSig to compression mux
 signal s_tdata_i_wots_pkFromSig  : std_logic_vector(511 downto 0) := (others => '0');
@@ -361,6 +366,12 @@ port map(
     din_xmss_pk_from_sig   => pk_from_sig_fifo_din,
     wr_en_xmss_pk_from_sig => pk_from_sig_fifo_wr_en,
     rd_en_xmss_pk_from_sig => pk_from_sig_fifo_rd_en,
+
+    -- wots pk from sig input
+    din_wots_pk_from_sig   => wots_pk_from_sig_fifo_din,
+    wr_en_wots_pk_from_sig => wots_pk_from_sig_fifo_wr_en,
+    rd_en_wots_pk_from_sig => wots_pk_from_sig_fifo_rd_en,
+
 
     -- xmss sig input 
     din_xmss_sig   => xmss_sig_fifo_din,
@@ -791,6 +802,14 @@ my_wots_pkFromSig : entity work.wots_pkFromSig
         chain_s             => chain_s_wots_pkFromSig            ,
         chain_data_in_valid => chain_data_in_valid_wots_pkFromSig,
         
+        -- fifo
+        din   => wots_pk_from_sig_fifo_din  ,
+        wr_en => wots_pk_from_sig_fifo_wr_en,
+        rd_en => wots_pk_from_sig_fifo_rd_en,
+
+        dout  => sig_fifo_dout ,
+        full  => sig_fifo_full ,             
+        empty => sig_fifo_empty, 
 
 
         chain_ready          => ready_wots_chain  ,
@@ -867,11 +886,11 @@ my_wots_pkFromSig : entity work.wots_pkFromSig
                 
    
                             
-                            if fifo_count < 73 then
+                            if fifo_count < 74 then
                                 wr_en_top <= '1';
                                 din_top <= sig_in;
                                 state <= idle;
-                            elsif fifo_count = 73 then
+                            elsif fifo_count = 74 then
                                 state <= pk_fromSig;
                                 wr_en_top <= '0';
                                 din_top <= (others => '0');
@@ -899,17 +918,17 @@ my_wots_pkFromSig : entity work.wots_pkFromSig
                     
                 when pk_fromSig =>                    
 
-                    if node_hash_ready = '1' then
+                    if ready_xmss_pkFromSig = '1' then
 
                         message                 <= message_in_reg;
                         idx                     <= node_target_index_reg;
                         valid_in_xmss_pkFromSig <= '1';
                     
-                    elsif node_hash_valid = '1' then
+                    elsif valid_out_xmss_pkFromSig = '1' then
 
                         op_out             <= op_input_reg;
                         pk_out             <= (others => '0');
-                        pkFromSig_out      <= node_hash_out;
+                        pkFromSig_out      <= pk_xmss_pkFromSig;
                         sig_xmss_out       <= (others => '0');
                         node_valid_out     <= '1';
                         node_ready         <= '0';         

@@ -31,6 +31,17 @@ Port (
     s_tvalid_i     : out std_logic;
     hash_reset     : out std_logic;
     
+    -- fifo inputs
+    din       : out std_logic_vector(255 downto 0);
+    wr_en     : out std_logic;
+    rd_en     : out std_logic;
+    
+    dout      : in std_logic_vector(255 downto 0);
+    full      : in std_logic;
+    empty     : in std_logic;
+
+
+
     s_tready_o     : in std_logic;
     digest_o       : in std_logic_vector(255 downto 0);
     digest_valid_o : in std_logic
@@ -86,18 +97,35 @@ signal stupid_count : integer := 0;
 signal compression_count : integer := 0;
 signal compression_rounds : integer := len;
 
+signal fifo_count : integer := 0;
+
+
 begin
 
 process(clock, reset)
 begin
 
 if reset='1' then
+    din       <= (others => '0') ;
+    wr_en     <= '0';
+    rd_en     <= '0';
+    
+    s_tdata_i      <= (others => '0');
+    s_tlast_i      <= '0';
+    s_tvalid_i     <= '0';
+    hash_reset     <= '0';
 
-pk_sig <= (others => '0');
-data_out_valid <= '0';
+    chain_x              <= (others => '0');
+    chain_i              <= (others => '0');
+    chain_s              <= (others => '0');
+    chain_data_in_valid  <= '0';                   
 
-current_state <= Idle;
-ready <= '1';
+
+    pk_sig <= (others => '0');
+    data_out_valid <= '0';
+
+    current_state <= Idle;
+    ready <= '1';
 
 elsif rising_edge(clock) then
 
@@ -122,7 +150,7 @@ elsif rising_edge(clock) then
         when Base_2b =>
             -- initialize checksum
             csum <= 0;
-            -- convert 1024-bit message to array of 64 16-bit chunks
+            -- convert 256-bit message to array of 64 4-bit chunks
             for i in 0 to len1-1 loop
                 message_array(i) <= to_integer(unsigned(M_reg(i*lgw+lgw-1 downto i*lgw)));
             end loop;
@@ -160,25 +188,34 @@ elsif rising_edge(clock) then
                     con_message_array(i) <= message_array(i-3);
                 end if;    
             end loop;
-            --current_state <= Sig_To_Array;
-            current_state <= chain;
+            current_state <= Sig_To_Array;
+            --current_state <= chain;
 
         when Sig_To_Array =>
-            for i in 0 to len-1 loop
-                sig_array(i) <= sig_reg;
-            end loop;
-            current_state <= Chain;
-        
+            if fifo_count = 0 then
+                rd_en <= '1';
+                fifo_count <= fifo_count + 1;
+            elsif fifo_count = 3 then
+                fifo_count <= 0;
+                rd_en <= '0';
+                sig_reg <= dout;
+                current_state <= Chain;
+            else
+                fifo_count <= fifo_count + 1;
+                rd_en <= '0';
+            end if;
+
         when Chain =>
             if i < len-1 then
                 if chain_ready = '1' then
-                    chain_x <= sig_array(i);
+                    chain_x <= sig_reg;
                     chain_i <= std_logic_vector(to_unsigned(con_message_array(i),16));
                     chain_s <= std_logic_vector(to_unsigned(w-1-con_message_array(i),16));
                     chain_data_in_valid <= '1';
                 elsif chain_data_out_valid = '1' then
                     tmp_array(i) <= chain_tmp;
                     i <= i + 1;
+                    current_state <= Sig_to_array;
                 else
                     chain_x <= (others => '0');
                     chain_i <= (others => '0');
