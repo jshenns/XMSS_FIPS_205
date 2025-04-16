@@ -20,7 +20,20 @@ entity control_system is
     pkFromSig_out      : out std_logic_vector(255 downto 0);
     sig_xmss_out       : out std_logic_vector(256*0 + 1*256 -1 downto 0);
     node_valid_out     : out std_logic;
-    node_ready         : out std_logic                   
+    node_ready         : out std_logic;
+    
+    --fifo signals
+    sig_fifo_din   : out std_logic_vector(255 downto 0);
+    sig_fifo_wr_en : out std_logic;
+    sig_fifo_rd_en : out std_logic;
+    
+    sig_fifo_dout  : in std_logic_vector(255 downto 0);
+    sig_fifo_full  : in std_logic;
+    sig_fifo_empty : in std_logic
+
+
+    
+                       
   );
 end control_system;
 
@@ -63,12 +76,12 @@ signal din_bram_xmss : STD_LOGIC_VECTOR(255 DOWNTO 0) := (others => '0');
 signal dout_bram_xmss : STD_LOGIC_VECTOR(255 DOWNTO 0) := (others => '0');
 
 -- bram fifo signals
-signal sig_fifo_din    : std_logic_vector(255 downto 0) := (others => '0');
-signal sig_fifo_wr_en  : std_logic := '0';
-signal sig_fifo_rd_en  : std_logic := '0';
-signal sig_fifo_dout   : std_logic_vector(255 downto 0) := (others => '0');
-signal sig_fifo_full   : std_logic := '0';
-signal sig_fifo_empty  : std_logic := '0';
+--signal sig_fifo_din    : std_logic_vector(255 downto 0) := (others => '0');
+--signal sig_fifo_wr_en  : std_logic := '0';
+--signal sig_fifo_rd_en  : std_logic := '0';
+--signal sig_fifo_dout   : std_logic_vector(255 downto 0) := (others => '0');
+--signal sig_fifo_full   : std_logic := '0';
+--signal sig_fifo_empty  : std_logic := '0';
 
 -- bram fifo mux
 signal pk_from_sig_fifo_din    : std_logic_vector(255 downto 0) := (others => '0');
@@ -391,19 +404,19 @@ port map(
 
 );
 
-my_sig_fifo : entity work.sig_fifo
-port map(
-    clk => clock,
-    srst => reset,
+--my_sig_fifo : entity work.sig_fifo
+--port map(
+--    clk => clock,
+--    srst => reset,
 
-    din   => sig_fifo_din  ,
-    wr_en => sig_fifo_wr_en,
-    rd_en => sig_fifo_rd_en,
-    dout  => sig_fifo_dout ,
-    full  => sig_fifo_full ,
-    empty => sig_fifo_empty
+--    din   => sig_fifo_din  ,
+--    wr_en => sig_fifo_wr_en,
+--    rd_en => sig_fifo_rd_en,
+--    dout  => sig_fifo_dout ,
+--    full  => sig_fifo_full ,
+--    empty => sig_fifo_empty
 
-);
+--);
 
 my_chain : entity work.chain
 
@@ -829,6 +842,7 @@ my_wots_pkFromSig : entity work.wots_pkFromSig
     
     process(clock, reset)
     begin
+        if rising_edge(clock) then
         if reset = '1' then
             state <= idle;
             
@@ -855,7 +869,7 @@ my_wots_pkFromSig : entity work.wots_pkFromSig
         
 
 
-        elsif rising_edge(clock) then
+        else
             case state is 
                 when idle =>
                     op_out             <= (others => '0');
@@ -982,9 +996,9 @@ my_wots_pkFromSig : entity work.wots_pkFromSig
                         sig_xmss_out       <= sig_xmss_sign;
                         node_valid_out     <= '1';
                         node_ready         <= '0';      
-                        if sig_fifo_empty = '1' then
+                        --if sig_fifo_empty = '1' then
                             state <= idle;
-                        end if;       
+                        --end if;       
                     
                     else
                         message_xmss_sign      <= (others => '0');
@@ -998,5 +1012,6 @@ my_wots_pkFromSig : entity work.wots_pkFromSig
 
             end case;
         end if;
+    end if;
     end process;
 end Behavioral;

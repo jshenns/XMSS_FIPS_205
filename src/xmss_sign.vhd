@@ -184,7 +184,8 @@ begin
                     end if;
 
                 else
-                    state <= fifo_dump;
+                    state <= idle;
+                    valid_out <= '1';
                     
                 end if;
             
@@ -215,22 +216,28 @@ begin
                 end if;
             
                 when fifo_dump =>
-                    fifo_count <= fifo_count + 1;
-
-                    if empty = '0' then
-                        rd_en <= '1';
-                        sig_xmss <= dout;
-                        if fifo_count > 2 then
-                            valid_out <= '1';
-                        end if;
-
-                    elsif empty = '1' then
                         rd_en <= '0';
                         sig_xmss <= (others => '0');
-                        valid_out <= '0';     
+                        valid_out <= '1';     
                         fifo_count <= 0;    
                         state <= idle;                    
-                    end if;
+
+--                    fifo_count <= fifo_count + 1;
+
+--                    if empty = '0' then
+--                        rd_en <= '1';
+--                        sig_xmss <= dout;
+--                        if fifo_count > 2 then
+--                            valid_out <= '1';
+--                        end if;
+
+--                    elsif empty = '1' then
+--                        rd_en <= '0';
+--                        sig_xmss <= (others => '0');
+--                        valid_out <= '1';     
+--                        fifo_count <= 0;    
+--                        state <= idle;                    
+--                    end if;
         end case; 
         
         
