@@ -899,16 +899,16 @@ my_wots_pkFromSig : entity work.wots_pkFromSig
                         elsif op_input = "11" then
                 
    
-                            
-                            if fifo_count < 74 then
-                                wr_en_top <= '1';
-                                din_top <= sig_in;
-                                state <= idle;
-                            elsif fifo_count = 74 then
-                                state <= pk_fromSig;
-                                wr_en_top <= '0';
-                                din_top <= (others => '0');
-                            end if;
+                            state <= pk_fromSig;
+--                            if fifo_count < 74 then
+--                                wr_en_top <= '1';
+--                                din_top <= sig_in;
+--                                state <= idle;
+--                            elsif fifo_count = 74 then
+--                                state <= pk_fromSig;
+--                                wr_en_top <= '0';
+--                                din_top <= (others => '0');
+--                            end if;
 
 
                         else

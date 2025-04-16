@@ -74,18 +74,10 @@ begin
 
         -- Test different inputs for the module
         rx_valid <= '1';
-        rx_data <= "00000010";  -- Check pk_gen state transition
+        rx_data <= "00000011";  -- Check pk_gen state transition
         wait for clk_period;
         rx_valid <= '0';
         
-        -- sk seed input
-        wait for clk_period;
-        rx_data <= x"01";
-        rx_valid <= '1';
-        wait for clk_period;
-        rx_data <= x"00";
-        rx_valid <= '1';
-        wait for clk_period*31;
         
         -- message input
         rx_data <= x"01";
@@ -102,6 +94,12 @@ begin
         rx_data <= x"00";
         rx_valid <= '1';
         wait for clk_period;
+
+
+        -- sig input
+        rx_data <= x"FF";
+        rx_valid <= '1';
+        wait for clk_period*2400;
 
 
         rx_data <= x"00";

@@ -46,7 +46,7 @@ signal sig_fifo_dout  : std_logic_vector(255 downto 0);
 signal sig_fifo_full  : std_logic;
 signal sig_fifo_empty : std_logic;
 
-type state_type is (idle, pk_gen, pk_gen_out, sig_gen, pk_fromSig, fifo_dump, fifo_load);
+type state_type is (idle, pk_gen, pk_gen_out, sig_gen, pk_fromSig, fifo_dump, pk_from_sig_out);
 signal state: state_type := idle;
 
 signal rx_data_reg : std_logic_vector(7 downto 0);
@@ -171,6 +171,14 @@ my_wrapper_fifo_mux : entity work.wrapper_fifo_mux(Behavioral)
             sig_reg <= (others => '0');
             fifo_count <= 0;
 
+            op_input <= (others => '0');
+            node_secret_seed <= (others => '0');
+            message_in <= (others => '0');
+            node_target_height <= (others => '0');
+            node_target_index <= (others => '0');
+            sig_in <= (others => '0');
+            node_valid_in <= '0';
+
                            
 
             din_global <= (others => '0');
@@ -271,11 +279,73 @@ my_wrapper_fifo_mux : entity work.wrapper_fifo_mux(Behavioral)
                         
                     end if;
                 when pk_fromSig =>
-                    state <= idle;
-                    rx_ready <= '0';
-                when fifo_load =>
-                    state <= idle;  
-                    rx_ready <= '0';
+                    if packet_count < 32 and rx_valid = '1' then
+                        message_reg(packet_count*8+7 downto packet_count*8) <= rx_data;
+                        packet_count <= packet_count + 1;
+                    elsif packet_count < 34 and rx_valid = '1' then
+                        target_index_reg((packet_count -32)*8 + 7 downto (packet_count-32)*8) <= rx_data;
+                        packet_count <= packet_count + 1;
+                    
+                    elsif packet_count < 2434 and rx_valid = '1' then
+                        packet_count <= packet_count + 1;
+                        if fifo_count < 32 then
+                            sig_reg((fifo_count)*8 + 7 downto (fifo_count)*8) <= rx_data;
+
+                            fifo_count <= fifo_count + 1;
+                            wr_en_global <= '0';
+                        else
+                            sig_reg(7 downto 0) <= rx_data;
+                            sig_reg (255 downto 8) <= (others => '0');
+                            fifo_count <= 0;
+                            wr_en_global <= '1';
+                            din_global <= sig_reg;
+                            
+                        end if;
+
+                    elsif packet_count = 2434 then
+
+                        message_in <= message_reg;
+                        node_target_index <= target_index_reg;
+                        op_input <= "11";
+                        node_valid_in <= '1';
+                        rx_ready <= '0';
+                        packet_count <= packet_count + 1;
+
+                    elsif packet_count = 2435 then
+                        node_secret_seed <= (others => '0');
+                        message_in <= (others => '0');
+                        node_target_height <= (others => '0');
+                        node_target_index <= (others => '0');
+                        op_input <= "00";
+                        node_valid_in <= '0';
+
+                        if node_valid_out = '1' then
+                            state <= pk_from_sig_out;
+                            pk_reg <= pkFromSig_out;
+                            packet_count <= 0;
+                        end if;
+                        
+                    end if;
+                when pk_from_sig_out =>
+                    if packet_count = 0 and tx_ready <= '1' then
+                        tx_data <= x"03";
+                        tx_valid <= '1';
+                        packet_count <= packet_count + 1;
+                    elsif packet_count < 33 and tx_ready <= '1' then
+                        tx_data <= pk_reg((packet_count-1)*8+7 downto (packet_count-1)*8);
+                        tx_valid <= '1';
+                        packet_count <= packet_count + 1;
+                    elsif packet_count = 33 then
+                        state <= idle;
+                        tx_data <= (others => '0');
+                        tx_valid <= '0';
+                        packet_count <= 0;
+
+                    else
+                        tx_data <= (others => '0');
+                        tx_valid <= '0';
+                    end if;
+
                 when fifo_dump =>
                     if tx_ready = '1' then
                         if packet_count = 0 then
