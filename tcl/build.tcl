@@ -42,6 +42,21 @@ export_ip_user_files -of_objects [get_files **/XMSS_FIPS_205/xmss_fips_205_vivad
 create_ip_run [get_files -of_objects [get_fileset sources_1] **/XMSS_FIPS_205/xmss_fips_205_vivado_project/xmss_fips_205_vivado_project.srcs/sources_1/ip/sig_fifo/sig_fifo.xci]
 launch_runs sig_fifo_synth_1 -jobs 8
 
+#add clock fifo
+create_ip -name fifo_generator -vendor xilinx.com -library ip -version 13.2 -module_name clock_fifo
+set_property -dict [list \
+  CONFIG.Clock_Type_AXI {Independent_Clock} \
+  CONFIG.Fifo_Implementation {Independent_Clocks_Block_RAM} \
+  CONFIG.INTERFACE_TYPE {AXI_STREAM} \
+] [get_ips clock_fifo]
+generate_target {instantiation_template} [get_files **/XMSS_FIPS_205/xmss_fips_205_vivado_project/xmss_fips_205_vivado_project.srcs/sources_1/ip/clock_fifo/clock_fifo.xci]
+generate_target all [get_files  **/XMSS_FIPS_205/xmss_fips_205_vivado_project/xmss_fips_205_vivado_project.srcs/sources_1/ip/clock_fifo/clock_fifo.xci]
+catch { config_ip_cache -export [get_ips -all clock_fifo] }
+export_ip_user_files -of_objects [get_files **/XMSS_FIPS_205/xmss_fips_205_vivado_project/xmss_fips_205_vivado_project.srcs/sources_1/ip/clock_fifo/clock_fifo.xci] -no_script -sync -force -quiet
+create_ip_run [get_files -of_objects [get_fileset sources_1] **/XMSS_FIPS_205/xmss_fips_205_vivado_project/xmss_fips_205_vivado_project.srcs/sources_1/ip/clock_fifo/clock_fifo.xci]
+launch_runs clock_fifo_synth_1 -jobs 8
+
+
 #add clock wizard
 create_ip -name clk_wiz -vendor xilinx.com -library ip -version 6.0 -module_name cllk_75
 set_property -dict [list \

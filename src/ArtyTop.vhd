@@ -164,11 +164,71 @@ architecture IMPL of Top is
     signal LA0_Signals      : std_logic_vector(31 downto 0);
     signal LA0_SampleEn     : std_logic;
     
+    signal fifo_RxData  : std_logic_vector(7 downto 0);
+    signal fifo_RxReady : std_logic;
+    signal fifo_RxValid : std_logic;
+    signal fifo_tx_tuser   : std_logic_vector(3 downto 0);
+    signal fifo_rx_tuser   : std_logic_vector(3 downto 0);
+    
+    
+
+
+    signal fifo_TxData  : std_logic_vector(7 downto 0);
+    signal fifo_TxReady : std_logic;
+    signal fifo_TxValid : std_logic;
+
+    
+    
+    
+    
    
 begin
 
     led0_b <= sw0;
     led0_r <= sw0;
+    
+    my_clk_fifo_rx : entity work.clock_fifo
+    port map(
+        m_aclk => CLK75MHZ,
+        s_aclk => CLK100MHZ,
+        
+        s_aresetn => sw0,
+        
+        -- slave, from the ethernet
+        s_axis_tdata =>  TCP0_RxData,
+        s_axis_tready => TCP0_RxReady,
+        s_axis_tuser =>  (others => '0'),
+        s_axis_tvalid => TCP0_RxValid,
+        
+        -- master, to the accelerator interface
+        m_axis_tdata =>  fifo_RxData,
+        m_axis_tready => fifo_RxReady,
+        m_axis_tuser =>  fifo_rx_tuser,
+        m_axis_tvalid => fifo_RxValid
+    
+    );
+    
+    my_clk_fifo_tx : entity work.clock_fifo
+    port map(
+        m_aclk => CLK100MHZ,
+        s_aclk => CLK75MHZ,
+        
+        s_aresetn => sw0,
+        
+        -- slave, from the accelerator interface
+        s_axis_tdata =>  fifo_TxData,
+        s_axis_tready => fifo_TxReady,
+        s_axis_tuser =>  (others => '0'),
+        s_axis_tvalid => fifo_TxValid,
+        
+        -- master, to the ethernet
+        m_axis_tdata =>  TCP0_TxData,
+        m_axis_tready => TCP0_TxReady,
+        m_axis_tuser =>  fifo_tx_tuser,
+        m_axis_tvalid => TCP0_TxValid
+    
+    );
+
     
     my_clk_wiz : cllk_75
     port map(clk_in1 => CLK100MHZ, reset => sw0, CLK75MHZ => CLK75MHZ);
@@ -180,19 +240,19 @@ begin
      
      
         -- out to the ethernet core
-        tx_data => TCP0_TxData,
-        tx_valid => TCP0_TxValid,
-        tx_ready => TCP0_TxReady,
+        tx_data => fifo_TxData,
+        tx_valid => fifo_TxValid,
+        tx_ready => fifo_TxReady,
         
         -- in from the ethernet core
-        rx_data => TCP0_RxData,
-        rx_valid => TCP0_RxValid,
-        rx_ready => TCP0_RxReady
+        rx_data => fifo_RxData,
+        rx_valid => fifo_RxValid,
+        rx_ready => fifo_RxReady
     );
     
     i_FC_1002_MII : FC1002_MII
     port map (
-        Clk             => CLK75MHZ,       -- 100 MHz
+        Clk             => CLK100MHZ,       -- 100 MHz
         Reset           => sw0,             -- Active high
 
         ----------------------------------------------------------------
