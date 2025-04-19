@@ -158,11 +158,11 @@ architecture IMPL of Top is
     signal TCP0_RxValid     : std_logic;
     signal TCP0_RxReady     : std_logic;
         
-    signal LA0_TrigIn       : std_logic;
-    signal LA0_Clk          : std_logic;
-    signal LA0_TrigOut      : std_logic;
-    signal LA0_Signals      : std_logic_vector(31 downto 0);
-    signal LA0_SampleEn     : std_logic;
+    signal LA0_TrigIn       : std_logic := '0';
+    signal LA0_Clk          : std_logic := '0';
+    signal LA0_TrigOut      : std_logic := '0';
+    signal LA0_Signals      : std_logic_vector(31 downto 0) := (others => '0');
+    signal LA0_SampleEn     : std_logic := '0';
     
     signal fifo_RxData  : std_logic_vector(7 downto 0);
     signal fifo_RxReady : std_logic;
@@ -186,49 +186,50 @@ begin
 
     led0_b <= sw0;
     led0_r <= sw0;
+
+    LA0_Clk <= CLK75MHZ;
     
-    my_clk_fifo_rx : entity work.clock_fifo
+    my_clk_cross_rx : entity work.axis_clock_converter
     port map(
-        m_aclk => CLK75MHZ,
-        s_aclk => CLK100MHZ,
+        m_axis_aclk => CLK75MHZ,         
+        s_axis_aclk => CLK100MHZ,
         
-        s_aresetn => sw0,
+        s_axis_aresetn => sw0,
+        m_axis_aresetn => sw0,
         
         -- slave, from the ethernet
         s_axis_tdata =>  TCP0_RxData,
         s_axis_tready => TCP0_RxReady,
-        s_axis_tuser =>  (others => '0'),
         s_axis_tvalid => TCP0_RxValid,
         
         -- master, to the accelerator interface
         m_axis_tdata =>  fifo_RxData,
         m_axis_tready => fifo_RxReady,
-        m_axis_tuser =>  fifo_rx_tuser,
         m_axis_tvalid => fifo_RxValid
     
     );
     
-    my_clk_fifo_tx : entity work.clock_fifo
+    my_clk_cross_tx : entity work.axis_clock_converter
     port map(
-        m_aclk => CLK100MHZ,
-        s_aclk => CLK75MHZ,
+        m_axis_aclk => CLK100MHZ,
+        s_axis_aclk => CLK75MHZ,
         
-        s_aresetn => sw0,
-        
+        s_axis_aresetn => sw0,
+        m_axis_aresetn => sw0,       
+       
         -- slave, from the accelerator interface
         s_axis_tdata =>  fifo_TxData,
         s_axis_tready => fifo_TxReady,
-        s_axis_tuser =>  (others => '0'),
         s_axis_tvalid => fifo_TxValid,
         
         -- master, to the ethernet
         m_axis_tdata =>  TCP0_TxData,
         m_axis_tready => TCP0_TxReady,
-        m_axis_tuser =>  fifo_tx_tuser,
         m_axis_tvalid => TCP0_TxValid
     
     );
 
+    
     
     my_clk_wiz : cllk_75
     port map(clk_in1 => CLK100MHZ, reset => sw0, CLK75MHZ => CLK75MHZ);
@@ -322,5 +323,20 @@ begin
         MII_TXD         => eth_txd         
     );
     
+    process (CLK75MHZ) is
+
+    begin
+        if rising_edge(CLK75MHZ) then
+            LA0_SampleEn <= '1';
+            LA0_Signals(7 downto 0) <= fifo_RxData;
+            LA0_TrigIn <= fifo_RxValid;
+            
+
+
+
+        end if;
+
+
+    end process;
     
 end IMPL;

@@ -42,7 +42,7 @@ begin
 process(clock, reset)
 begin
 
-if reset = '1' or wots_pkGen_reset = '1' or wots_pkFromSig_reset = '1' then
+if reset = '1' then
     s_tdata_i  <= (others => '0');
     s_tlast_i  <= '0';
     s_tvalid_i <= '0';
